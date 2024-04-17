@@ -11,6 +11,8 @@ import network.Response;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,9 +56,11 @@ public class CommandInvoker {
     public void clearScriptCounter() {
         scriptCounter = 0;
     }
+
     public void scriptCount() {
         scriptCounter++;
     }
+
     public int getScriptCounter() {
         return scriptCounter;
     }
@@ -72,7 +76,7 @@ public class CommandInvoker {
         }
     }
 
-    public void runCommand(String line, ReadModes readMode) {
+    public void runCommand(String line, ReadModes readMode) throws SocketException {
         String[] tokens = line.split(" ");
         Command command = commands.get(tokens[0].toLowerCase());
         String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
@@ -82,14 +86,25 @@ public class CommandInvoker {
             Request request = new Request(command, args, readMode);
             Response response = null;
 
+            DatagramSocket datagramSocket = new DatagramSocket();
+            client.setDatagramSocket(datagramSocket);
+
             try {
                 client.sendObject(request);
-                response = (Response) client.receiveObject();
+
+                System.out.println("ща ответ буду искать");
+                response = (Response) client.receiveObject(datagramSocket);
+
+                System.out.println("ответ есть");
+                System.out.println(response.getMessage());
 
             } catch (IOException e) {
                 System.out.printf("Ошибка ввода-вывода при посылке запроса на сервер: %s\n", e.getMessage());
+                e.printStackTrace();
             } catch (ClassCastException e) {
                 System.out.println("Принятый объект не является ответом");
+            } finally {
+                datagramSocket.close();
             }
 
             if (response != null) {
@@ -98,10 +113,13 @@ public class CommandInvoker {
                 System.out.println("Ответ на запрос - null");
             }
 
+//            datagramSocket.close();
+
         } else {
             System.out.println("Такой команды не существует!");
         }
     }
+
     public Map<String, Command> getCommands() {
         return commands;
     }

@@ -9,6 +9,7 @@ public class Client {
     private static Client client;
     public static final int PORT = 8000;
     public static final String HOST = "localhost";
+    private DatagramSocket datagramSocket;
 
     private Client() {
         client = this;
@@ -42,18 +43,19 @@ public class Client {
         InetAddress address = InetAddress.getByName(HOST);
         DatagramPacket packet = new DatagramPacket(data, data.length, address, PORT);
 
-        DatagramSocket datagramSocket = new DatagramSocket();
+//        DatagramSocket datagramSocket = new DatagramSocket();
 
 
         datagramSocket.send(packet);
 //        System.out.println("Послано");
-        datagramSocket.close();
+//        datagramSocket.close();
     }
 
 
     public Object receiveObject(DatagramSocket datagramSocket) throws IOException {
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[512];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
         datagramSocket.receive(packet);
 
         byte[] data = packet.getData();
@@ -69,5 +71,9 @@ public class Client {
             System.out.println("Ошибка: не найден класс при чтении запроса");
             return null;
         }
+    }
+
+    public void setDatagramSocket(DatagramSocket datagramSocket) {
+        this.datagramSocket = datagramSocket;
     }
 }

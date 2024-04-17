@@ -4,6 +4,8 @@ import commandManagers.commands.*;
 import enums.ReadModes;
 import input.InputManager;
 import commandManagers.commands.Command;
+import network.Response;
+import network.Server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -57,33 +59,25 @@ public class CommandInvoker {
         return scriptCounter;
     }
 
-    public void listenCommands() {
-        try (BufferedReader reader = InputManager.getConsoleReader()) {
-            while (true) {
-                String line = reader.readLine();
-                runCommand(line, ReadModes.CONSOLE);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void runCommand(String line, ReadModes readMode) {
+    public Response runCommand(String line, ReadModes readMode) throws IOException {
         String[] tokens = line.split(" ");
         Command command = commands.get(tokens[0].toLowerCase());
+        Response response = runCommand(command, Arrays.copyOfRange(tokens, 1, tokens.length), readMode);
+        return response;
+    }
+
+    public Response runCommand(Command command, String[] args, ReadModes readMode) {
+        Response response = null;
         if (command != null) {
-            if (tokens.length > 1) {
-                command.execute(readMode, Arrays.copyOfRange(tokens, 1, tokens.length));
+            if (args.length > 0) {
+                response = command.execute(readMode, args);
             } else {
-                command.execute(readMode, new String[0]);
+                response = command.execute(readMode, new String[0]);
             }
-        } else if (tokens[0].equals("exit")) {
-            System.out.println("Выход из программы и сохранение..");
-            RouteManager.getInstance().saveCollection("data/collection.json");
-            System.exit(0);
         } else {
             System.out.println("Такой команды не существует!");
         }
+        return response;
     }
     public Map<String, Command> getCommands() {
         return commands;

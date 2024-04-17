@@ -1,5 +1,6 @@
 package network;
 
+import commandManagers.CommandInvoker;
 import commandManagers.RouteManager;
 import commandManagers.commands.Command;
 import entity.Coordinates;
@@ -9,16 +10,18 @@ import entity.Route;
 import enums.ReadModes;
 
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 public class Server {
 
     private static Server server;
     public static final int PORT = 8000;
+
+    private InetAddress clientAddr = null;
+
+    private DatagramSocket datagramSocket = null;
+    private int clientPort = 0;
 
     private Server() {
         server = this;
@@ -38,7 +41,7 @@ public class Server {
 
         while (true) {
 
-            DatagramSocket datagramSocket = new DatagramSocket(PORT);
+            datagramSocket = new DatagramSocket(PORT);
 
             Object obj;
             obj = receiveObject(datagramSocket);
@@ -54,12 +57,19 @@ public class Server {
 
             Response response;
             if (request != null) {
+                System.out.println("ща handlю реквеcт");
                 response = handleRequest(request);
+                System.out.println(response.getMessage());
             } else {
                 response = new Response("Принятый запрос - null");
             }
 
-            sendObject(response);
+            if (clientAddr != null && clientPort != 0) {
+                System.out.println("ща пошлю клиенту");
+                sendObject(response, clientAddr, clientPort);
+                System.out.println("послал " + response.getMessage() + "  " + clientAddr + " " + clientPort);
+            }
+
 
             datagramSocket.close();
         }
@@ -70,7 +80,9 @@ public class Server {
         String[] args = request.getArgs();
         ReadModes readMode = request.getReadMode();
 
-        return command.execute(readMode, args);
+        Response response = CommandInvoker.getInstance().runCommand(command, args, readMode);
+
+        return response;
     }
 
     private Object receiveObject(DatagramSocket datagramSocket) throws IOException {
@@ -80,6 +92,9 @@ public class Server {
 
         byte[] data = packet.getData();
         Object obj;
+
+        clientAddr = packet.getAddress();
+        clientPort = packet.getPort();
 
         try (
                 ByteArrayInputStream bais = new ByteArrayInputStream(data);
@@ -104,16 +119,27 @@ public class Server {
         }
         sendData(data);
     }
+    public void sendObject(Object obj, InetAddress addr, int port) throws IOException {
+        byte[] data;
+        try (
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(bos);
+        ) {
+            oos.writeObject(obj);
+            data = bos.toByteArray();
+        }
+        sendData(data, addr, port);
+    }
 
-    public void sendData(byte[] data) throws IOException {
+    public void sendData(byte[] data, InetAddress address, int port) throws IOException {
 
-        InetAddress address = InetAddress.getLocalHost();
-        DatagramPacket packet = new DatagramPacket(data, data.length, address, PORT);
-
-        DatagramSocket datagramSocket = new DatagramSocket();
+        DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
 
         datagramSocket.send(packet);
+    }
 
-        datagramSocket.close();
+    public void sendData(byte[] data) throws IOException {
+        InetAddress address = InetAddress.getLocalHost();
+        sendData(data, address, PORT);
     }
 }
