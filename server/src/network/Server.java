@@ -65,7 +65,7 @@ public class Server {
             }
 
             if (clientAddr != null && clientPort != 0) {
-                System.out.println("ща пошлю клиенту");
+                System.out.println("ща пошлю клиенту ответ");
                 sendObject(response, clientAddr, clientPort);
                 System.out.println("послал " + response.getMessage() + "  " + clientAddr + " " + clientPort);
             }

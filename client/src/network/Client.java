@@ -2,6 +2,9 @@ package network;
 
 import java.io.*;
 import java.net.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 
 public class Client {
@@ -9,7 +12,8 @@ public class Client {
     private static Client client;
     public static final int PORT = 8000;
     public static final String HOST = "localhost";
-    private DatagramSocket datagramSocket;
+
+    public SocketChannel socketChannel;
 
     private Client() {
         client = this;
@@ -22,58 +26,44 @@ public class Client {
         return client;
     }
 
-    public void sendObject(Object obj) throws IOException {
-        byte[] data;
-        try (
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos);
-        ) {
-            oos.writeObject(obj);
-            data = bos.toByteArray();
+    public Response sendRequest(Request request) {
+
+        openSocketChannel();
+
+        try (ObjectOutputStream oos = new ObjectOutputStream(socketChannel.socket().getOutputStream());
+            ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream())) {
+            oos.writeObject(request);
+            oos.flush();
+
+            Response response = (Response) ois.readObject();
+            System.out.println(response);
+
         } catch (IOException e) {
-            System.out.printf("Ошибка ввода-вывода в потоке объектов: %s\n", e.getMessage());
-//            e.printStackTrace();
-            return;
+            System.out.println("Ошибка ввода/выводы при отправке запроса на сервер");
+        } catch (ClassNotFoundException | ClassCastException e) {
+            System.out.println("Не найден класс при чтении объекта из ответа сервера");
         }
-        sendData(data);
+
+        return null;
     }
 
-    private void sendData(byte[] data) throws IOException {
+    public void openSocketChannel() {
+        InetSocketAddress addr = new InetSocketAddress(HOST, PORT);
 
-        InetAddress address = InetAddress.getByName(HOST);
-        DatagramPacket packet = new DatagramPacket(data, data.length, address, PORT);
+//        Selector selector = null;
+//        try {
+//            selector = Selector.open();
+//        } catch (IOException e) {
+//            System.out.println("Ошибка при создании селектора на сервере");
+//            return;
+//        }
 
-//        DatagramSocket datagramSocket = new DatagramSocket();
-
-
-        datagramSocket.send(packet);
-//        System.out.println("Послано");
-//        datagramSocket.close();
-    }
-
-
-    public Object receiveObject(DatagramSocket datagramSocket) throws IOException {
-        byte[] buffer = new byte[512];
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
-        datagramSocket.receive(packet);
-
-        byte[] data = packet.getData();
-        Object obj;
-
-        try (
-                ByteArrayInputStream bais = new ByteArrayInputStream(data);
-                ObjectInputStream ois = new ObjectInputStream(bais);
-        ) {
-            obj = ois.readObject();
-            return obj;
-        } catch (ClassNotFoundException e) {
-            System.out.println("Ошибка: не найден класс при чтении запроса");
-            return null;
+        try {
+            socketChannel = SocketChannel.open(addr);
+            socketChannel.configureBlocking(false);
+        } catch (IOException e) {
+            System.out.printf("Ошибка при создании сетевого канала по адресу %s:%s\n", HOST, PORT);
+            e.printStackTrace();
         }
-    }
-
-    public void setDatagramSocket(DatagramSocket datagramSocket) {
-        this.datagramSocket = datagramSocket;
     }
 }
