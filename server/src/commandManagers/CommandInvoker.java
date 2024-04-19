@@ -2,17 +2,12 @@ package commandManagers;
 
 import commandManagers.commands.*;
 import enums.ReadModes;
-import input.InputManager;
 import commandManagers.commands.Command;
 import network.Response;
-import network.Server;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class CommandInvoker {
     private Map<String, Command> commands;
@@ -59,13 +54,12 @@ public class CommandInvoker {
         return scriptCounter;
     }
 
-    public Response runCommand(String line, ReadModes readMode) throws IOException {
+    public Response runCommand(String line, ReadModes readMode) {
         String[] tokens = line.split(" ");
-        Command command = commands.get(tokens[0].toLowerCase());
-        Response response = runCommand(command, Arrays.copyOfRange(tokens, 1, tokens.length), readMode);
-        return response;
+        Command cmd = getCommand(tokens[0]);
+        String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
+        return runCommand(cmd, args, readMode);
     }
-
     public Response runCommand(Command command, String[] args, ReadModes readMode) {
         Response response = null;
         if (command != null) {
@@ -81,6 +75,10 @@ public class CommandInvoker {
     }
     public Map<String, Command> getCommands() {
         return commands;
+    }
+
+    public Command getCommand(String cmdName) {
+        return commands.get(cmdName);
     }
 }
 
