@@ -1,6 +1,5 @@
 package network;
 
-import commandManagers.commands.Command;
 import enums.ReadModes;
 
 import java.io.Serial;
@@ -11,18 +10,18 @@ public class Request implements Serializable {
     @Serial
     private static final long serialVersionUID = 5114584243644685314L;
 
-    private Command command;
+    private String cmdName;
     private String[] args;
     private ReadModes readMode;
 
-    public Request(Command command, String[] args, ReadModes readMode) {
-        this.command = command;
+    public Request(String cmdName, String[] args, ReadModes readMode) {
+        this.cmdName = cmdName;
         this.args = args;
         this.readMode = readMode;
     }
 
-    public Command getCommand() {
-        return command;
+    public String getCommand() {
+        return cmdName;
     }
 
     public String[] getArgs() {
@@ -36,7 +35,7 @@ public class Request implements Serializable {
     @Override
     public String toString() {
         return "Request{" +
-                "command=" + command +
+                "command=" + cmdName +
                 ", args=" + Arrays.toString(args) +
                 '}';
     }
