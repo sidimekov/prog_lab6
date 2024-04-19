@@ -3,25 +3,25 @@ package network;
 import commandManagers.CommandInvoker;
 import commandManagers.RouteManager;
 import commandManagers.commands.Command;
-import entity.Coordinates;
-import entity.LocationFrom;
-import entity.LocationTo;
-import entity.Route;
 import enums.ReadModes;
 
-import java.io.*;
-import java.net.*;
-import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 
 public class Server {
-
     private static Server server;
-    public static final int PORT = 8000;
+    private InetSocketAddress serverSocketAddr;
 
-    private InetAddress clientAddr = null;
-
-    private DatagramSocket datagramSocket = null;
-    private int clientPort = 0;
+    private InetAddress clientAddr;
+    private int clientPort;
 
     private Server() {
         server = this;
@@ -34,112 +34,115 @@ public class Server {
         return server;
     }
 
-    public void run() throws IOException {
+    public void run(String serverAddr, int serverPort) {
 
         RouteManager rm = RouteManager.getInstance();
-//        rm.loadCollection();
+
+        this.serverSocketAddr = new InetSocketAddress(serverAddr, serverPort);
+
+        System.out.printf("Сервер запущен по адресу: %s:%s\n", serverAddr, serverPort);
 
         while (true) {
 
-            datagramSocket = new DatagramSocket(PORT);
+            Response response = listenRequest();
 
-            Object obj;
-            obj = receiveObject(datagramSocket);
+            sendResponse(response);
 
-//            System.out.println(obj.toString());
-            Request request;
-            try {
-                request = (Request) obj;
-            } catch (ClassCastException e) {
-                System.out.println("Принятый объект не является запросом");
-                continue;
-            }
-
-            Response response;
-            if (request != null) {
-                System.out.println("ща handlю реквеcт");
-                response = handleRequest(request);
-                System.out.println(response.getMessage());
-            } else {
-                response = new Response("Принятый запрос - null");
-            }
-
-            if (clientAddr != null && clientPort != 0) {
-                System.out.println("ща пошлю клиенту ответ");
-                sendObject(response, clientAddr, clientPort);
-                System.out.println("послал " + response.getMessage() + "  " + clientAddr + " " + clientPort);
-            }
-
-
-            datagramSocket.close();
         }
     }
 
-    private Response handleRequest(Request request) {
-        Command command = request.getCommand();
-        String[] args = request.getArgs();
-        ReadModes readMode = request.getReadMode();
+    /**
+     * Ожидает запросы от клиента, после получения выполняет запрос и формирует ответ
+     * Получение запроса с помощью сетевого канала
+     * @return response - Возвращаемый ответ от сервера
+     */
+    private Response listenRequest() {
+        Response response = null;
 
-        Response response = CommandInvoker.getInstance().runCommand(command, args, readMode);
+        try (ServerSocketChannel sscServer = ServerSocketChannel.open()) {
+
+            sscServer.bind(serverSocketAddr);
+
+            SocketChannel scClient = sscServer.accept();
+
+            clientAddr = scClient.socket().getInetAddress();
+            clientPort = scClient.socket().getPort();
+
+            ObjectInputStream ois = new ObjectInputStream(scClient.socket().getInputStream());
+            Request request = (Request) ois.readObject();
+
+            ois.close();
+
+            System.out.printf("Получен запрос от %s:%s : %s\n", clientAddr, clientPort, request);
+
+            response = handleRequest(request);
+
+        } catch (IOException e) {
+            System.out.printf("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage());
+        } catch (ClassNotFoundException | ClassCastException e) {
+            System.out.printf("Ошибка при формировании запроса от клиента по адресу %s:%s\n", clientAddr, clientPort);
+        }
 
         return response;
     }
 
-    private Object receiveObject(DatagramSocket datagramSocket) throws IOException {
-        byte[] buffer = new byte[1024];
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        datagramSocket.receive(packet);
+    /**
+     * Обработать запрос, указанный в параметрах и вернуть ответ
+     * @param request - Запрос для обработки
+     * @return response - Ответ после запроса
+     */
+    private Response handleRequest(Request request) {
+        Response response = null;
 
-        byte[] data = packet.getData();
-        Object obj;
+        String cmdName = request.getCommand();
+        String[] args = request.getArgs();
+        ReadModes readMode = request.getReadMode();
 
-        clientAddr = packet.getAddress();
-        clientPort = packet.getPort();
+        System.out.printf("Получен запрос от клиента %s:%s с командой %s\n", clientAddr, clientPort, cmdName);
 
-        try (
-                ByteArrayInputStream bais = new ByteArrayInputStream(data);
-                ObjectInputStream ois = new ObjectInputStream(bais);
-        ) {
-            obj = ois.readObject();
-            return obj;
-        } catch (ClassNotFoundException e) {
-            System.out.println("Ошибка: не найден класс при чтении запроса");
-            return null;
+        CommandInvoker cmdInvoker = CommandInvoker.getInstance();
+        Command command = cmdInvoker.getCommand(cmdName);
+
+        if (command == null) {
+            response = new Response("Указанной команды не существует!");
+            System.out.println("Такой команды не существует, отправка ответа клиенту...");
+        } else {
+            response = cmdInvoker.runCommand(command, args, readMode);
+            System.out.println("Команда выполнена, отправка ответа клиенту...");
         }
+
+        return response;
     }
 
-    public void sendObject(Object obj) throws IOException {
-        byte[] data;
-        try (
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos);
-        ) {
-            oos.writeObject(obj);
-            data = bos.toByteArray();
+
+    /**
+     * Отправка ответа на запрос клиенту
+     * @param response - отправляемый ответ
+     */
+    private void sendResponse(Response response) {
+
+        try (DatagramSocket dsServer = new DatagramSocket()) {
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+
+            oos.writeObject(response);
+
+            oos.flush();
+            oos.close();
+
+            baos.close();
+            byte[] byteResponse = baos.toByteArray();
+
+            DatagramPacket dpServer = new DatagramPacket(byteResponse, byteResponse.length, clientAddr, clientPort);
+
+            dsServer.send(dpServer);
+
+            System.out.printf("Отправлен ответ на запрос клиенту по адресу %s:%s\n\n", clientAddr, clientPort);
+//            System.out.printf("Запрос: %s\n", response.getMessage());
+
+        } catch (IOException e) {
+            System.out.printf("Ошибка ввода/вывода при посылке ответа клиенту по адресу %s:%s : %s\n", clientAddr, clientPort, e.getMessage());
         }
-        sendData(data);
-    }
-    public void sendObject(Object obj, InetAddress addr, int port) throws IOException {
-        byte[] data;
-        try (
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos);
-        ) {
-            oos.writeObject(obj);
-            data = bos.toByteArray();
-        }
-        sendData(data, addr, port);
-    }
-
-    public void sendData(byte[] data, InetAddress address, int port) throws IOException {
-
-        DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
-
-        datagramSocket.send(packet);
-    }
-
-    public void sendData(byte[] data) throws IOException {
-        InetAddress address = InetAddress.getLocalHost();
-        sendData(data, address, PORT);
     }
 }

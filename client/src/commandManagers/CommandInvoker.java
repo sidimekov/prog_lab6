@@ -9,14 +9,12 @@ import network.Response;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.Arrays;
 
 public class CommandInvoker {
     private static CommandInvoker instance;
-
-    private int scriptCounter;
-    public final int SCRIPT_RECURSION_LIMIT = 10;
 
     private CommandInvoker() {
         CommandManager.getInstance();
@@ -49,7 +47,9 @@ public class CommandInvoker {
             Client client = Client.getInstance();
             Request request = new Request(cmdName, args, readMode);
 
-            Response response = client.sendRequest(request);
+            InetSocketAddress serverSocketAddr = client.serverSocketAddr;
+
+            Response response = client.sendRequest(request, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
 
             System.out.println(response.getMessage());
 

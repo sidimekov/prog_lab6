@@ -1,19 +1,19 @@
 package network;
 
-import java.io.*;
-import java.net.*;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 
 public class Client {
-
     private static Client client;
-    public static final int PORT = 8000;
-    public static final String HOST = "localhost";
-
-    public SocketChannel socketChannel;
+    private int clientPort;
+    public final InetSocketAddress serverSocketAddr = new InetSocketAddress("localhost", 8000);
 
     private Client() {
         client = this;
@@ -26,44 +26,63 @@ public class Client {
         return client;
     }
 
-    public Response sendRequest(Request request) {
+    /**
+     * Отправка запроса по указанным адресу и порту с помощью сетевого канала
+     * Затем возвращает Response - ответ от сервера
+     * @param request - Запрос
+     * @param serverAddr - Адрес сервера для подключения
+     * @param serverPort - Порт сервера для подключения
+     *
+     * @return response - Ответ от сервера
+     */
+    public Response sendRequest(Request request, InetAddress serverAddr, int serverPort) {
 
-        openSocketChannel();
+        InetSocketAddress serverSocketAddr = new InetSocketAddress(serverAddr, serverPort);
 
-        try (ObjectOutputStream oos = new ObjectOutputStream(socketChannel.socket().getOutputStream());
-            ObjectInputStream ois = new ObjectInputStream(socketChannel.socket().getInputStream())) {
+        try (SocketChannel scClient = SocketChannel.open()) {
+
+            scClient.connect(serverSocketAddr);
+            clientPort = scClient.socket().getLocalPort();
+
+
+            ObjectOutputStream oos = new ObjectOutputStream(scClient.socket().getOutputStream());
+
             oos.writeObject(request);
+
             oos.flush();
-
-            Response response = (Response) ois.readObject();
-            System.out.println(response);
+            oos.close();
 
         } catch (IOException e) {
-            System.out.println("Ошибка ввода/выводы при отправке запроса на сервер");
-        } catch (ClassNotFoundException | ClassCastException e) {
-            System.out.println("Не найден класс при чтении объекта из ответа сервера");
+            System.out.printf("Ошибка ввода/вывода при создании канала сокетов по адресу %s:%s\n", serverAddr, serverPort);
         }
 
-        return null;
-    }
+        Response response = null;
 
-    public void openSocketChannel() {
-        InetSocketAddress addr = new InetSocketAddress(HOST, PORT);
+        try (DatagramSocket dsClient = new DatagramSocket(clientPort)) {
 
-//        Selector selector = null;
-//        try {
-//            selector = Selector.open();
-//        } catch (IOException e) {
-//            System.out.println("Ошибка при создании селектора на сервере");
-//            return;
-//        }
+            byte[] bytesResponse = new byte[4096];
+            DatagramPacket dpClient = new DatagramPacket(bytesResponse, bytesResponse.length);
 
-        try {
-            socketChannel = SocketChannel.open(addr);
-            socketChannel.configureBlocking(false);
+            dsClient.receive(dpClient);
+
+            byte[] data = dpClient.getData();
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(data);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+
+            response = (Response) ois.readObject();
+
+            bais.close();
+            ois.close();
+
         } catch (IOException e) {
-            System.out.printf("Ошибка при создании сетевого канала по адресу %s:%s\n", HOST, PORT);
+            System.out.printf("Ошибка ввода/вывода при получении ответа с сервера по адресу %s:%s : %s\n", serverAddr, serverPort, e.getMessage());
             e.printStackTrace();
+        } catch (ClassNotFoundException | ClassCastException e) {
+            e.printStackTrace();
+            System.out.printf("Ошибка при формировании ответа с сервера по адресу %s:%s : %s\n", serverAddr, serverPort, e.getMessage());
         }
+
+        return response;
     }
 }

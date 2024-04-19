@@ -47,4 +47,14 @@ public class AddCommand extends Command {
         }
         return new Response();
     }
+
+    @Override
+    public String getUsage() {
+        return USAGE;
+    }
+
+    @Override
+    public String getDesc() {
+        return DESC;
+    }
 }
