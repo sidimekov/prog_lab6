@@ -23,7 +23,7 @@ public class HelpCommand extends Command {
             response.append(String.format("%s - %s\n", command.getUsage(), command.getDesc()));
         }
 
-        return new Response(response.toString());
+        return new Response(response.toString(), true);
     }
 
 

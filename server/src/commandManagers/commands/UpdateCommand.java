@@ -27,10 +27,10 @@ public class UpdateCommand extends Command {
                 if (readMode == ReadModes.CONSOLE) {
                     rm.update(element, true); // если с консоли, уже отвалидировано
                 } else {
-                    return new Response(String.format("Некорректные аргументы, использование: %s\n", USAGE));
+                    return new Response(String.format("Некорректные аргументы, использование: %s\n", USAGE), true);
                 }
             } catch (IOException e) {
-                return new Response(e.getMessage());
+                return new Response(e.getMessage(), true);
             }
         } else {
             // из файла .json
@@ -39,11 +39,11 @@ public class UpdateCommand extends Command {
                 Route element = JSONManager.readElement(path);
                 rm.update(element);
             } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(e.getMessage());
+                return new Response(e.getMessage(), true);
             }
         }
         if (readMode == ReadModes.CONSOLE) {
-            return new Response("Обновлён элемент в коллекции");
+            return new Response("Обновлён элемент в коллекции", true);
         }
         return new Response();
     }

@@ -16,7 +16,7 @@ public class ShowCommand extends Command {
         RouteManager rm = RouteManager.getInstance();
         PriorityQueue<Route> collection = rm.getCollection();
         String response = RouteManager.returnCollection(collection);
-        return new Response(response);
+        return new Response(response, true);
     }
 
 

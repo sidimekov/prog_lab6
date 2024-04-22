@@ -53,7 +53,7 @@ public class Client {
             oos.close();
 
         } catch (IOException e) {
-            System.out.printf("Ошибка ввода/вывода при создании канала сокетов по адресу %s:%s\n", serverAddr, serverPort);
+            System.out.printf("Ошибка ввода/вывода при посылке запроса при создании канала сокетов по адресу %s:%s\n", serverAddr, serverPort);
         }
 
         Response response = null;
@@ -84,5 +84,59 @@ public class Client {
         }
 
         return response;
+    }
+
+    public void sendResponse(Response response, InetAddress serverAddr, int serverPort) {
+        InetSocketAddress serverSocketAddr = new InetSocketAddress(serverAddr, serverPort);
+
+        try (SocketChannel scClient = SocketChannel.open()) {
+
+            scClient.connect(serverSocketAddr);
+            clientPort = scClient.socket().getLocalPort();
+
+            ObjectOutputStream oos = new ObjectOutputStream(scClient.socket().getOutputStream());
+
+            oos.writeObject(response);
+
+            oos.flush();
+            oos.close();
+
+        } catch (IOException e) {
+            System.out.printf("Ошибка ввода/вывода при посылке ответа при создании канала сокетов по адресу %s:%s\n", serverAddr, serverPort);
+        }
+    }
+
+    public Response listenResponse(InetAddress serverAddr, int serverPort) {
+        System.out.println("Слушаю ответ");
+
+        Response response = null;
+
+        try (DatagramSocket dsClient = new DatagramSocket(clientPort)) {
+
+            byte[] bytesResponse = new byte[4096];
+            DatagramPacket dpClient = new DatagramPacket(bytesResponse, bytesResponse.length);
+
+            dsClient.receive(dpClient);
+
+            byte[] data = dpClient.getData();
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(data);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+
+            response = (Response) ois.readObject();
+
+            bais.close();
+            ois.close();
+
+        } catch (IOException e) {
+            System.out.printf("Ошибка ввода/вывода при получении ответа с сервера по адресу %s:%s : %s\n", serverAddr, serverPort, e.getMessage());
+            e.printStackTrace();
+        } catch (ClassNotFoundException | ClassCastException e) {
+            e.printStackTrace();
+            System.out.printf("Ошибка при формировании ответа с сервера по адресу %s:%s : %s\n", serverAddr, serverPort, e.getMessage());
+        }
+
+        return response;
+
     }
 }

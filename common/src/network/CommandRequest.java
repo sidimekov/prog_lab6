@@ -1,0 +1,43 @@
+package network;
+
+import enums.ReadModes;
+import enums.RequestTypes;
+
+import java.io.Serial;
+import java.util.Arrays;
+
+public class CommandRequest extends Request {
+    @Serial
+    private static final long serialVersionUID = 5114584243644685314L;
+
+    private String cmdName;
+    private String[] args;
+    private ReadModes readMode;
+
+    public CommandRequest(String cmdName, String[] args, ReadModes readMode) {
+        super(RequestTypes.COMMAND);
+        this.cmdName = cmdName;
+        this.args = args;
+        this.readMode = readMode;
+    }
+
+    public String getCommand() {
+        return cmdName;
+    }
+
+    public String[] getArgs() {
+        return args;
+    }
+
+    public ReadModes getReadMode() {
+        return readMode;
+    }
+
+    @Override
+    public String toString() {
+        return "Request{" +
+                "command=" + cmdName +
+                ", args=" + Arrays.toString(args) +
+                '}';
+    }
+}

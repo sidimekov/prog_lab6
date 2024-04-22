@@ -40,7 +40,7 @@ public class RemoveGreaterCommand extends Command {
                 .filter(element -> (element.compareTo(inpElement) > 0))
                 .forEach(element -> rm.removeElement(element.getId()));
         if (readMode == ReadModes.CONSOLE) {
-            return new Response("Все элементы, превосходящие введённый, удалены");
+            return new Response("Все элементы, превосходящие введённый, удалены", true);
         }
         return new Response();
     }

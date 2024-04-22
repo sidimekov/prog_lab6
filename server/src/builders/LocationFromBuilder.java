@@ -1,19 +1,32 @@
 package builders;
 
 import entity.LocationFrom;
+import network.BuildRequest;
+import network.Response;
+import network.Server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 
 public class LocationFromBuilder {
     public static LocationFrom build(BufferedReader reader) throws IOException {
-        System.out.println("Настройка изначальной локации...");
+
+        Response serverResponse;
+        Response clientResponse;
+
+        Server server = Server.getInstance();
+
+//        serverResponse = new Response("Настройка изначальной локации...");
+//        server.sendResponse(serverResponse);
 
         int x;
-        System.out.println("Введите x (int) > ");
         while (true) {
+            BuildRequest buildRequest = new BuildRequest("Введите x (int) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
             try {
-                x = Integer.parseInt(reader.readLine());
+                x = Integer.parseInt(clientResponse.getMessage());
             } catch (NumberFormatException e) {
                 continue;
             }
@@ -22,9 +35,12 @@ public class LocationFromBuilder {
 
         Integer y = null;
         do {
-            System.out.println("Введите y (Integer, не null) > ");
+            BuildRequest buildRequest = new BuildRequest("Введите y (Integer, не null) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
             try {
-                y = Integer.parseInt(reader.readLine());
+                y = Integer.parseInt(clientResponse.getMessage());
             } catch (NumberFormatException e) {
                 continue;
             }
@@ -32,16 +48,21 @@ public class LocationFromBuilder {
 
         float z;
         while (true) {
-            System.out.println("Введите z (float) > ");
+            BuildRequest buildRequest = new BuildRequest("Введите z (float) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
             try {
-                z = Float.parseFloat(reader.readLine());
+                z = Float.parseFloat(clientResponse.getMessage());
             } catch (NumberFormatException e) {
                 continue;
             }
             if (LocationFrom.checkZ(z)) break;
         }
 
-        System.out.println("Изначальная локация настроена");
+//        serverResponse = new Response("Изначальная локация настроена");
+//        server.sendResponse(serverResponse);
+
         return new LocationFrom(x, y, z);
     }
 }

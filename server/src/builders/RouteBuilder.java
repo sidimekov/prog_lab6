@@ -4,20 +4,34 @@ import entity.Coordinates;
 import entity.LocationFrom;
 import entity.LocationTo;
 import entity.Route;
+import network.BuildRequest;
+import network.Response;
+import network.Server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 
 public class RouteBuilder {
     public static Route build(BufferedReader reader, boolean withId) throws IOException {
-        System.out.println("Создание маршрута...");
+
+        Response serverResponse;
+        Response clientResponse;
+
+        Server server = Server.getInstance();
+
+//        serverResponse = new Response("Создание маршрута...");
+//        server.sendResponse(serverResponse);
+
 
         long id = 0;
         if (withId) {
             while (true) {
-                System.out.println("Введите id маршрута (long, больше 0)");
+                BuildRequest buildRequest = new BuildRequest("Введите id маршрута (long, больше 0) > ");
+                clientResponse = server.sendResponse(new Response(buildRequest));
+                String responseString = clientResponse.getMessage();
+
                 try {
-                    id = Long.parseLong(reader.readLine());
+                    id = Long.parseLong(responseString);
                 } catch (NumberFormatException e) {
                     continue;
                 }
@@ -27,8 +41,12 @@ public class RouteBuilder {
 
         String name;
         do {
-            System.out.println("Введите имя маршрута (String, не null, строка не может быть пустой) > ");
-            name = reader.readLine();
+            BuildRequest buildRequest = new BuildRequest("Введите имя маршрута (String, не null, строка не может быть пустой) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
+            name = clientResponse.getMessage();
+
         } while (!Route.checkName(name));
 
         Coordinates coordinates = CoordinatesBuilder.build(reader);
@@ -39,16 +57,21 @@ public class RouteBuilder {
 
         double distance;
         while (true) {
-            System.out.println("Введите дистанцию маршрута (double, больше 1) > ");
+            BuildRequest buildRequest = new BuildRequest("Введите дистанцию маршрута (double, больше 1) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
             try {
-                distance = Double.parseDouble(reader.readLine());
+                distance = Double.parseDouble(clientResponse.getMessage());
             } catch (NumberFormatException e) {
                 continue;
             }
             if (Route.checkDistance(distance)) break;
         }
 
-        System.out.println("Маршрут настроен");
+//        serverResponse = new Response("Маршрут настроен");
+//        server.sendResponse(serverResponse);
+
         Route route;
         if (withId) {
             route = new Route(id, name, coordinates, locFrom, locTo, distance);

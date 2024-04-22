@@ -16,18 +16,18 @@ public class RemoveByIdCommand extends Command {
             try {
                 id = Long.parseLong(args[0]);
             } catch (NumberFormatException e) {
-                return new Response(String.format("Некорректные аргументы, используйте: %s\n", USAGE));
+                return new Response(String.format("Некорректные аргументы, используйте: %s\n", USAGE), true);
             }
             if (rm.hasElement(id)) {
                 rm.removeElement(id);
             } else {
-                return new Response("Нет элемента с таким id");
+                return new Response("Нет элемента с таким id", true);
             }
         } else {
-            return new Response(String.format("Некорректные аргументы, используйте: %s\n", USAGE));
+            return new Response(String.format("Некорректные аргументы, используйте: %s\n", USAGE), true);
         }
         if (readMode == ReadModes.CONSOLE) {
-            return new Response("Элемент удалён");
+            return new Response("Элемент удалён", true);
         }
         return new Response();
     }

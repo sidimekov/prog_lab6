@@ -1,25 +1,41 @@
 package builders;
 
 import entity.LocationTo;
+import network.BuildRequest;
+import network.Response;
+import network.Server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 
 public class LocationToBuilder {
     public static LocationTo build(BufferedReader reader) throws IOException {
-        System.out.println("Настройка окончательной локации...");
+
+        Response serverResponse;
+        Response clientResponse;
+
+        Server server = Server.getInstance();
+
+//        serverResponse = new Response("Настройка окончательной локации...");
+//        server.sendResponse(serverResponse);
 
         String name;
         do {
-            System.out.println("Введите имя окончательной локации (String, не null, длина не больше 443) > ");
-            name = reader.readLine();
+            BuildRequest buildRequest = new BuildRequest("Введите имя окончательной локации (String, не null, длина не больше 443) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
+            name = clientResponse.getMessage();
         } while (!LocationTo.checkName(name));
 
         float x;
         while (true) {
-            System.out.println("Введите x (float) > ");
+            BuildRequest buildRequest = new BuildRequest("Введите x (float) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
             try {
-                x = Float.parseFloat(reader.readLine());
+                x = Float.parseFloat(clientResponse.getMessage());
             } catch (NumberFormatException e) {
                 continue;
             }
@@ -28,9 +44,12 @@ public class LocationToBuilder {
 
         Integer y = null;
         do {
-            System.out.println("Введите y (Integer, не null) > ");
+            BuildRequest buildRequest = new BuildRequest("Введите y (Integer, не null) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
             try {
-                y = Integer.parseInt(reader.readLine());
+                y = Integer.parseInt(clientResponse.getMessage());
             } catch (NumberFormatException e) {
                 continue;
             }
@@ -38,16 +57,21 @@ public class LocationToBuilder {
 
         long z;
         while (true) {
-            System.out.println("Введите z (long) > ");
+            BuildRequest buildRequest = new BuildRequest("Введите z (long) > ");
+
+            clientResponse = server.sendResponse(new Response(buildRequest));
+
             try {
-                z = Long.parseLong(reader.readLine());
+                z = Long.parseLong(clientResponse.getMessage());
             } catch (NumberFormatException e) {
                 continue;
             }
             if (LocationTo.checkZ(z)) break;
         }
 
-        System.out.println("Окончательная локация настроена");
+//        serverResponse = new Response("Окончательная локация настроена");
+//        server.sendResponse(serverResponse);
+
         return new LocationTo(name, x, y, z);
     }
 }

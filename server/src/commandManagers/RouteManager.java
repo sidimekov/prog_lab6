@@ -180,7 +180,7 @@ public class RouteManager {
     }
 
     public static boolean validateElement(Route el) {
-        if (!Route.checkId(el.getId())) {
+        if (!checkId(el.getId())) {
             System.out.println("Неверный id (возможно, он уже занят)");
             return false;
         }
@@ -235,7 +235,7 @@ public class RouteManager {
 //        collection
 //                .stream()
 //                .filter(el -> (el.getDistance() == distance))
-//                .forEach(el -> RouteManager.getInstance().getCollection().remove(el));
+//                .forEach(el -> commandManagers.RouteManager.getInstance().getCollection().remove(el));
         collection.removeIf(el -> (el.getDistance() == distance));
     }
 
@@ -276,5 +276,13 @@ public class RouteManager {
 
     public void saveCollection(String path) {
         JSONManager.writeCollection(path);
+    }
+
+    public static boolean checkId(long id) {
+        if (RouteManager.isInitialized()) {
+            return (id > 0 && !RouteManager.getInstance().getIds().contains(id));
+        } else {
+            return (id > 0);
+        }
     }
 }
