@@ -76,7 +76,8 @@ public class Server {
 
             ois.close();
 
-            System.out.printf("Получен запрос от %s:%s : %s\n", clientAddr, clientPort, request);
+            String msg = request.toString();
+            System.out.printf("Получен запрос от %s:%s : %s\n", clientAddr, clientPort, msg.length() > 16 ? msg.substring(0,16) : msg);
 
 
         } catch (IOException e) {
@@ -102,7 +103,7 @@ public class Server {
      * @return response - полученный ответ
      */
     public Response listenResponse() {
-        System.out.println("Слушаю ответ");
+//        System.out.println("Слушаю ответ");
         Response response = null;
 
         try (ServerSocketChannel sscServer = ServerSocketChannel.open()) {
@@ -119,13 +120,15 @@ public class Server {
 
             ois.close();
 
-            System.out.printf("Получен ответ от %s:%s : %s\n", clientAddr, clientPort, response.getMessage());
+            String msg = response.getMessage();
+            System.out.printf("Получен ответ от %s:%s : %s\n", clientAddr, clientPort, msg.length() > 16 ? msg.substring(0,16) : msg);
 
         } catch (IOException e) {
             System.out.printf("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage());
         } catch (ClassNotFoundException | ClassCastException e) {
             System.out.printf("Ошибка при формировании запроса от клиента по адресу %s:%s. Ошибка: %s\n", clientAddr, clientPort, e.getMessage());
         }
+
 
         return response;
     }

@@ -25,6 +25,7 @@ public class AddCommand extends Command {
         if (args.length == 0) {
             try {
                 BufferedReader reader = InputManager.getConsoleReader();
+
                 Route element = RouteManager.buildNew(reader); // если с консоли
 
                 rm.addElement(element, true);

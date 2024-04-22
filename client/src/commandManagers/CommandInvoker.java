@@ -25,7 +25,8 @@ public class CommandInvoker {
     }
 
     public void listenCommands() {
-        try (BufferedReader reader = InputManager.getConsoleReader()) {
+        try {
+            BufferedReader reader = InputManager.getConsoleReader();
             while (true) {
                 String line = reader.readLine();
                 runCommand(line, ReadModes.CONSOLE);
@@ -50,7 +51,15 @@ public class CommandInvoker {
 
             response = client.sendRequest(request, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
 
-            System.out.println(response.getMessage());
+            if (response.hasResponseRequest()) {
+                // Если сервер при посылке ответа, послал запрос (например передать элемент)
+
+                BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
+
+                handleRequest(buildRequest);
+            } else {
+                System.out.println(response.getMessage());
+            }
 
             while (!response.isFinal()) {
                 response = client.listenResponse(serverSocketAddr.getAddress(), serverSocketAddr.getPort());
@@ -60,10 +69,7 @@ public class CommandInvoker {
 
                     BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
 
-                    Response buildResponse = listenResponse(buildRequest.getMessage());
-                    System.out.println(buildRequest.getMessage());
-
-                    client.sendResponse(buildResponse, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
+                    handleRequest(buildRequest);
 
                 } else {
                     System.out.println(response.getMessage());
@@ -75,17 +81,28 @@ public class CommandInvoker {
         }
     }
 
-    public Response listenResponse(String message) {
-        try (BufferedReader reader = InputManager.getConsoleReader()) {
-//            while (true) {
-                System.out.println(message);
-                String line = reader.readLine();
-                return new Response(line);
-//            }
+    public Response listenConsole(String message) {
+        try {
+            BufferedReader reader = InputManager.getConsoleReader();
+            System.out.println(message);
+            String line = reader.readLine();
+            return new Response(line);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
+    public void handleRequest(Request request) {
+        Client client = Client.getInstance();
+        InetSocketAddress serverSocketAddr = client.serverSocketAddr;
+
+        BuildRequest buildRequest = (BuildRequest) request;
+
+        Response buildResponse = listenConsole(buildRequest.getMessage());
+//        System.out.println(buildRequest.getMessage());
+
+        client.sendResponse(buildResponse, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
+
+    }
 }
 

@@ -1,5 +1,7 @@
 package network;
 
+import enums.RequestTypes;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -107,7 +109,7 @@ public class Client {
     }
 
     public Response listenResponse(InetAddress serverAddr, int serverPort) {
-        System.out.println("Слушаю ответ");
+//        System.out.println("Слушаю ответ");
 
         Response response = null;
 
