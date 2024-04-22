@@ -3,6 +3,7 @@ package commandManagers.commands;
 import commandManagers.RouteManager;
 import entity.Route;
 import enums.ReadModes;
+import network.MessageRequest;
 import network.Response;
 
 import java.util.PriorityQueue;
@@ -16,7 +17,11 @@ public class ShowCommand extends Command {
         RouteManager rm = RouteManager.getInstance();
         PriorityQueue<Route> collection = rm.getCollection();
         String response = RouteManager.returnCollection(collection);
-        return new Response(response, true);
+        if (readMode == ReadModes.FILE) {
+            return new Response(new MessageRequest(response));
+        } else {
+            return new Response(response, true);
+        }
     }
 
 

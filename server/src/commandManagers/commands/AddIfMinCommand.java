@@ -41,7 +41,7 @@ public class AddIfMinCommand extends Command {
         }
 
 
-        if (element.compareTo(minElement) < 0) {
+        if (minElement == null || element.compareTo(minElement) < 0) {
             if (readMode == ReadModes.CONSOLE) {
                 rm.addElement(element, true);
                 return new Response("Минимальный элемент добавлен в коллекцию", true);
@@ -53,7 +53,7 @@ public class AddIfMinCommand extends Command {
                 return new Response("Указанный элемент не будет самым минимальным", true);
             }
         }
-        return new Response();
+        return new Response("null",true);
     }
 
     @Override

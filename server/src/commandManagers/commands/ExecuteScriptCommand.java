@@ -3,6 +3,7 @@ package commandManagers.commands;
 import commandManagers.CommandInvoker;
 import enums.ReadModes;
 import network.Response;
+import network.Server;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -15,6 +16,7 @@ public class ExecuteScriptCommand extends Command {
 
     @Override
     public Response execute(ReadModes readMode, String[] args) {
+        Server server = Server.getInstance();
         if (args.length == 1) {
             String path = args[0];
             path = path.replaceAll("\"", "");
@@ -28,7 +30,8 @@ public class ExecuteScriptCommand extends Command {
                         invoker.scriptCount();
                     }
                     if (invoker.getScriptCounter() < invoker.SCRIPT_RECURSION_LIMIT) {
-                        invoker.runCommand(line, ReadModes.FILE);
+                        Response cmdResponse = invoker.runCommand(line, ReadModes.FILE);
+                        server.sendResponse(cmdResponse);
                     } else {
                         // чтоб не спамило:
                         if (invoker.getScriptCounter() == invoker.SCRIPT_RECURSION_LIMIT)
@@ -43,7 +46,7 @@ public class ExecuteScriptCommand extends Command {
         } else {
             return new Response(String.format("Неверное количество аргументов (got %s, expected 1)", args.length), true);
         }
-        return new Response();
+        return new Response("Скрипт выполнен", true);
     }
 
     @Override
