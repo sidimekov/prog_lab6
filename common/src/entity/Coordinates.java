@@ -3,7 +3,7 @@ package entity;
 import java.io.Serial;
 import java.io.Serializable;
 
-public class Coordinates implements Serializable {
+public class Coordinates extends Entity {
     @Serial
     private static final long serialVersionUID = -3485884422219031514L;
     private double x; //Максимальное значение поля: 790

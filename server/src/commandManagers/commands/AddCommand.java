@@ -30,7 +30,7 @@ public class AddCommand extends Command {
                 rm.addElement(element, true);
 
             } catch (IOException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()));
+                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()), true);
             }
         } else {
             // из файла .json
@@ -39,11 +39,11 @@ public class AddCommand extends Command {
                 Route element = JSONManager.readElement(path);
                 RouteManager.getInstance().addElement(element);
             } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()));
+                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()), true);
             }
         }
         if (readMode == ReadModes.CONSOLE) {
-            return new Response("Добавлен элемент в коллекцию");
+            return new Response("Добавлен элемент в коллекцию", true);
         }
         return new Response();
     }

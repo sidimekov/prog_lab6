@@ -16,7 +16,7 @@ public class ClearCommand extends Command {
         RouteManager rm = RouteManager.getInstance();
         rm.getCollection().clear();
         if (readMode == ReadModes.CONSOLE) {
-            return new Response("Коллекция очищена");
+            return new Response("Коллекция очищена", true);
         }
         return new Response();
     }

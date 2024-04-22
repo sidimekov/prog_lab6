@@ -3,7 +3,7 @@ package entity;
 import java.io.Serial;
 import java.io.Serializable;
 
-public class LocationTo implements Serializable {
+public class LocationTo extends Entity {
     @Serial
     private static final long serialVersionUID = -5172728822641131375L;
     private float x;

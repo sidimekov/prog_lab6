@@ -29,14 +29,14 @@ public class AddIfMinCommand extends Command {
                 BufferedReader reader = InputManager.getConsoleReader();
                 element = RouteManager.buildNew(reader); // если с консоли
             } catch (IOException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()));
+                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()), true);
             }
         } else {
             String path = args[0];
             try {
                 element = JSONManager.readElement(path);
             } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()));
+                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()), true);
             }
         }
 
@@ -44,13 +44,13 @@ public class AddIfMinCommand extends Command {
         if (element.compareTo(minElement) < 0) {
             if (readMode == ReadModes.CONSOLE) {
                 rm.addElement(element, true);
-                return new Response("Минимальный элемент добавлен в коллекцию");
+                return new Response("Минимальный элемент добавлен в коллекцию", true);
             } else {
                 rm.addElement(element);
             }
         } else {
             if (readMode == ReadModes.CONSOLE) {
-                return new Response("Указанный элемент не будет самым минимальным");
+                return new Response("Указанный элемент не будет самым минимальным", true);
             }
         }
         return new Response();

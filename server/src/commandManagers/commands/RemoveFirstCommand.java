@@ -13,7 +13,7 @@ public class RemoveFirstCommand extends Command {
         RouteManager rm = RouteManager.getInstance();
         rm.getCollection().remove();
         if (readMode == ReadModes.CONSOLE) {
-            return new Response("Первый элемент коллекции удалён");
+            return new Response("Первый элемент коллекции удалён", true);
         }
         return new Response();
     }

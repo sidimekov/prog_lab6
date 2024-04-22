@@ -1,13 +1,11 @@
 package entity;
 
-import commandManagers.CommandManager;
 import util.IdManager;
 
 import java.io.Serial;
-import java.io.Serializable;
 import java.util.Date;
 
-public class Route implements Comparable, Serializable {
+public class Route extends Entity implements Comparable {
     @Serial
     private static final long serialVersionUID = 2459895131011601780L;
     private long id; // Значение поля должно быть больше 0, Значение этого поля должно быть уникальным, Значение этого поля должно генерироваться автоматически
@@ -90,14 +88,6 @@ public class Route implements Comparable, Serializable {
         this.coordinates = coordinates;
     }
 
-
-    public static boolean checkId(long id) {
-        if (CommandManager.isInitialized()) {
-            return (id > 0 && !CommandManager.getInstance().getIds().contains(id));
-        } else {
-            return (id > 0);
-        }
-    }
     public static boolean checkName(String name) {
         return (name != null && !name.isEmpty());
     }

@@ -20,7 +20,7 @@ public class InfoCommand extends Command {
         response = response + String.format("Дата создания: %s\n", rm.getInitializationDate());
         response = response + String.format("Количество элементов: %s\n", collection.size());
 
-        return new Response(response);
+        return new Response(response, true);
     }
 
 

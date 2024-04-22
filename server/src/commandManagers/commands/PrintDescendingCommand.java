@@ -12,7 +12,7 @@ public class PrintDescendingCommand extends Command {
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
         String response = rm.returnDescending();
-        return new Response(response);
+        return new Response(response, true);
     }
 
     @Override

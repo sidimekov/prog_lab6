@@ -1,42 +1,21 @@
 package network;
 
 import enums.ReadModes;
+import enums.RequestTypes;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Arrays;
 
-public class Request implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 5114584243644685314L;
+public abstract class Request implements Serializable {
+    private final RequestTypes type;
 
-    private String cmdName;
-    private String[] args;
-    private ReadModes readMode;
-
-    public Request(String cmdName, String[] args, ReadModes readMode) {
-        this.cmdName = cmdName;
-        this.args = args;
-        this.readMode = readMode;
+    public Request(RequestTypes type) {
+        this.type = type;
     }
 
-    public String getCommand() {
-        return cmdName;
+    public RequestTypes getType() {
+        return type;
     }
 
-    public String[] getArgs() {
-        return args;
-    }
-
-    public ReadModes getReadMode() {
-        return readMode;
-    }
-
-    @Override
-    public String toString() {
-        return "Request{" +
-                "command=" + cmdName +
-                ", args=" + Arrays.toString(args) +
-                '}';
-    }
 }
