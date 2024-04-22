@@ -7,6 +7,7 @@ import exceptions.FailedJSONReadException;
 import exceptions.FailedValidationException;
 import input.InputManager;
 import input.JSONManager;
+import network.MessageRequest;
 import network.Response;
 
 import java.io.BufferedReader;

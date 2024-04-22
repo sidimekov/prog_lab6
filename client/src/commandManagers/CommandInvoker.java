@@ -1,6 +1,7 @@
 package commandManagers;
 
 import enums.ReadModes;
+import enums.RequestTypes;
 import input.InputManager;
 import network.*;
 
@@ -54,22 +55,34 @@ public class CommandInvoker {
             if (response.hasResponseRequest()) {
                 // Если сервер при посылке ответа, послал запрос (например передать элемент)
 
-                BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
+                Request req = response.getResponseRequest();
+                // switch case java 12
+                if (req.getType() == RequestTypes.BUILD) {
+                    BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
 
-                handleRequest(buildRequest);
+                    handleRequest(buildRequest);
+                } else if (req.getType() == RequestTypes.MESSAGE) {
+                    System.out.println(((MessageRequest) req).getMessage());
+                }
             } else {
                 System.out.println(response.getMessage());
             }
 
             while (!response.isFinal()) {
+                // совместить попытаться
                 response = client.listenResponse(serverSocketAddr.getAddress(), serverSocketAddr.getPort());
 
                 if (response.hasResponseRequest()) {
                     // Если сервер при посылке ответа, послал запрос (например передать элемент)
 
-                    BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
+                    Request req = response.getResponseRequest();
+                    if (req.getType() == RequestTypes.BUILD) {
+                        BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
 
-                    handleRequest(buildRequest);
+                        handleRequest(buildRequest);
+                    } else if (req.getType() == RequestTypes.MESSAGE) {
+                        System.out.println(((MessageRequest) req).getMessage());
+                    }
 
                 } else {
                     System.out.println(response.getMessage());

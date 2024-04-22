@@ -141,4 +141,43 @@ public class Client {
         return response;
 
     }
+
+    public Response listenRequest(InetAddress serverAddr, int serverPort) {
+//        System.out.println("Слушаю ответ");
+
+        Request request = null;
+
+        try (DatagramSocket dsClient = new DatagramSocket(clientPort)) {
+
+            byte[] bytesResponse = new byte[4096];
+            DatagramPacket dpClient = new DatagramPacket(bytesResponse, bytesResponse.length);
+
+            dsClient.receive(dpClient);
+
+            byte[] data = dpClient.getData();
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(data);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+
+            request = (Request) ois.readObject();
+
+            bais.close();
+            ois.close();
+
+        } catch (IOException e) {
+            System.out.printf("Ошибка ввода/вывода при получении ответа с сервера по адресу %s:%s : %s\n", serverAddr, serverPort, e.getMessage());
+            e.printStackTrace();
+        } catch (ClassNotFoundException | ClassCastException e) {
+            e.printStackTrace();
+            System.out.printf("Ошибка при формировании ответа с сервера по адресу %s:%s : %s\n", serverAddr, serverPort, e.getMessage());
+        }
+
+        // Обработка запроса (пока может принимать только запросы типа Message при правильном использовании)
+        Response response = null;
+        if (request.getType() == RequestTypes.MESSAGE) {
+            response = new Response();
+        }
+        return response;
+
+    }
 }

@@ -35,9 +35,10 @@ public class CommandRequest extends Request {
 
     @Override
     public String toString() {
-        return "Request{" +
-                "command=" + cmdName +
+        return "CommandRequest{" +
+                "cmdName='" + cmdName + '\'' +
                 ", args=" + Arrays.toString(args) +
+                ", readMode=" + readMode +
                 '}';
     }
 }

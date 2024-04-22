@@ -209,4 +209,35 @@ public class Server {
             return null;
         }
     }
+
+    public Response sendRequest(Request request) {
+        try (DatagramSocket dsServer = new DatagramSocket()) {
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+
+            oos.writeObject(request);
+
+            oos.flush();
+            oos.close();
+
+            baos.close();
+            byte[] byteResponse = baos.toByteArray();
+
+            DatagramPacket dpServer = new DatagramPacket(byteResponse, byteResponse.length, clientAddr, clientPort);
+
+            dsServer.send(dpServer);
+
+            System.out.printf("Отправлен запрос клиенту по адресу %s:%s\n\n", clientAddr, clientPort);
+//            System.out.printf("Запрос: %s\n", response.getMessage());
+
+        } catch (IOException e) {
+            System.out.printf("Ошибка ввода/вывода при посылке запроса клиенту по адресу %s:%s : %s\n", clientAddr, clientPort, e.getMessage());
+            return null;
+        }
+
+        Response response = listenResponse();
+
+        return response;
+    }
 }
