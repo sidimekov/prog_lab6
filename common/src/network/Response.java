@@ -11,7 +11,6 @@ public class Response implements Serializable {
     private String message;
     private Request responseRequest;
     // вместо isFinal проверка на null реквеста
-    private boolean isFinal;
 
     public Response(Request responseRequest) {
         this.responseRequest = responseRequest;
@@ -22,16 +21,15 @@ public class Response implements Serializable {
     public Response(String message) {
         this.message = message;
     }
-    public Response(String message, boolean isFinal) {
-        this.message = message;
-        this.isFinal = isFinal;
-    }
     public Response() {
-        this.isFinal = true;
     }
 
     public String getMessage() {
         return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public boolean hasResponseRequest() {
@@ -42,11 +40,11 @@ public class Response implements Serializable {
         return responseRequest;
     }
 
-    public boolean isFinal() {
-        return isFinal;
-    }
-
-    public void setFinal(boolean aFinal) {
-        isFinal = aFinal;
+    @Override
+    public String toString() {
+        return "Response{" +
+                "message='" + message + '\'' +
+                ", responseRequest=" + responseRequest +
+                '}';
     }
 }

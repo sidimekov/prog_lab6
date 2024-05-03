@@ -1,15 +1,16 @@
 package commandManagers;
 
 import enums.ReadModes;
-import enums.RequestTypes;
-import input.InputManager;
 import network.*;
+import util.InputManager;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 public class CommandInvoker {
@@ -44,7 +45,16 @@ public class CommandInvoker {
         if (!cmdName.isEmpty()) {
 
             Client client = Client.getInstance();
-            Request request = new CommandRequest(cmdName, args, readMode);
+            CommandRequest request = new CommandRequest(cmdName, args);
+            request.setReadMode(readMode);
+
+            if (args.length > 0) {
+                File file = InputManager.validPath(args[0]);
+
+                if (file != null) {
+                    request.setFilePath(file.getAbsolutePath());
+                }
+            }
 
             InetSocketAddress serverSocketAddr = client.serverSocketAddr;
 
@@ -52,42 +62,31 @@ public class CommandInvoker {
 
             response = client.sendRequest(request, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
 
-            if (response.hasResponseRequest()) {
+            while (response.hasResponseRequest()) {
+//                System.out.println(response);
+
+                if (response.getMessage() != null) {
+                    System.out.println(response.getMessage());
+                }
                 // Если сервер при посылке ответа, послал запрос (например передать элемент)
 
                 Request req = response.getResponseRequest();
-                // switch case java 12
-                if (req.getType() == RequestTypes.BUILD) {
-                    BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
-
-                    handleRequest(buildRequest);
-                } else if (req.getType() == RequestTypes.MESSAGE) {
-                    System.out.println(((MessageRequest) req).getMessage());
-                }
-            } else {
-                System.out.println(response.getMessage());
-            }
-
-            while (!response.isFinal()) {
-                // совместить попытаться
-                response = client.listenResponse(serverSocketAddr.getAddress(), serverSocketAddr.getPort());
-
-                if (response.hasResponseRequest()) {
-                    // Если сервер при посылке ответа, послал запрос (например передать элемент)
-
-                    Request req = response.getResponseRequest();
-                    if (req.getType() == RequestTypes.BUILD) {
-                        BuildRequest buildRequest = (BuildRequest) response.getResponseRequest();
-
+                switch (req.getType()) {
+                    case BUILD -> {
+                        BuildRequest buildRequest = (BuildRequest) req;
                         handleRequest(buildRequest);
-                    } else if (req.getType() == RequestTypes.MESSAGE) {
-                        System.out.println(((MessageRequest) req).getMessage());
                     }
-
-                } else {
-                    System.out.println(response.getMessage());
+                    case FILE -> {
+                        FileRequest fileRequest = (FileRequest) req;
+                        handleRequest(fileRequest);
+                    }
+                    case MESSAGE -> System.out.println(((MessageRequest) req).getMessage());
                 }
+
+                response = client.listenResponse(serverSocketAddr.getAddress(), serverSocketAddr.getPort());
             }
+
+            System.out.println(response.getMessage());
 
         } else {
             System.out.println("Пустая команда!");
@@ -97,7 +96,7 @@ public class CommandInvoker {
     public Response listenConsole(String message) {
         try {
             BufferedReader reader = InputManager.getConsoleReader();
-            System.out.println(message);
+//            System.out.println(message);
             String line = reader.readLine();
             return new Response(line);
         } catch (IOException e) {
@@ -109,12 +108,36 @@ public class CommandInvoker {
         Client client = Client.getInstance();
         InetSocketAddress serverSocketAddr = client.serverSocketAddr;
 
-        BuildRequest buildRequest = (BuildRequest) request;
+        switch (request.getType()) {
+            case BUILD -> {
+                BuildRequest buildRequest = (BuildRequest) request;
 
-        Response buildResponse = listenConsole(buildRequest.getMessage());
-//        System.out.println(buildRequest.getMessage());
+                Response buildResponse = listenConsole(buildRequest.getMessage());
+//                System.out.println(buildRequest.getMessage());
 
-        client.sendResponse(buildResponse, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
+                client.sendResponse(buildResponse, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
+            }
+            case FILE -> {
+                FileRequest fileRequest = (FileRequest) request;
+
+                String path = fileRequest.getFilePath();
+
+                String fileContent = null;
+
+                try {
+                    fileContent = Files.readString(Path.of(path), StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    System.out.printf("Ошибка при отправке содержимого файла: %s", e.getMessage());
+                    return;
+                }
+
+                Response fileContentResponse = new Response(fileContent);
+
+                client.sendResponse(fileContentResponse, serverSocketAddr.getAddress(), serverSocketAddr.getPort());
+//                client.sendResponse(new Response(path), serverSocketAddr.getAddress(), serverSocketAddr.getPort());
+            }
+        }
+
 
     }
 }

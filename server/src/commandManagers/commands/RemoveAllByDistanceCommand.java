@@ -17,16 +17,13 @@ public class RemoveAllByDistanceCommand extends Command {
             try {
                 distance = Double.parseDouble(args[0]);
                 rm.removeAllByDistance(distance);
-                if (readMode == ReadModes.CONSOLE) {
-                    return new Response(String.format("Все элементы с дистанцией %s удалены\n", distance), true);
-                }
+                return new Response(String.format("Все элементы с дистанцией %s удалены\n", distance));
             } catch (NumberFormatException e) {
-                return new Response("Некорректная дистанция", true);
+                return new Response("Некорректная дистанция");
             }
         } else {
-            return new Response(String.format("Некорректные аргументы, использование: %s\n", USAGE), true);
+            return new Response(String.format("Некорректные аргументы, использование: %s\n", USAGE));
         }
-        return new Response();
     }
 
     @Override

@@ -17,11 +17,7 @@ public class ShowCommand extends Command {
         RouteManager rm = RouteManager.getInstance();
         PriorityQueue<Route> collection = rm.getCollection();
         String response = RouteManager.returnCollection(collection);
-        if (readMode == ReadModes.FILE) {
-            return new Response(new MessageRequest(response));
-        } else {
-            return new Response(response, true);
-        }
+        return new Response(response);
     }
 
 

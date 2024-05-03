@@ -3,13 +3,11 @@ package network;
 import commandManagers.CommandInvoker;
 import commandManagers.RouteManager;
 import commandManagers.commands.Command;
+import commandManagers.commands.ExecuteScriptCommand;
 import enums.ReadModes;
 import enums.RequestTypes;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -47,7 +45,6 @@ public class Server {
             Response response = listenRequest();
 
             sendResponse(response);
-
         }
     }
 
@@ -60,6 +57,8 @@ public class Server {
     private Response listenRequest() {
         Response response = null;
         Request request = null;
+
+        String fileContent = null;
 
         try (ServerSocketChannel sscServer = ServerSocketChannel.open()) {
 
@@ -77,8 +76,7 @@ public class Server {
             ois.close();
 
             String msg = request.toString();
-            System.out.printf("Получен запрос от %s:%s : %s\n", clientAddr, clientPort, msg.length() > 16 ? msg.substring(0,16) : msg);
-
+            System.out.printf("Получен запрос от %s:%s : %s\n", clientAddr, clientPort, msg);
 
         } catch (IOException e) {
             System.out.printf("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage());
@@ -86,9 +84,31 @@ public class Server {
             System.out.printf("Ошибка при формировании запроса от клиента по адресу %s:%s\n", clientAddr, clientPort);
         }
 
+        if (request != null && request.getFilePath() != null) {
+
+            // посылка запроса контента файла, если путь был указан
+
+            // создание запроса FileRequest, путь указывается который был послан серверу как аргумент
+            FileRequest fileRequest = new FileRequest();
+            fileRequest.setFilePath(request.getFilePath());
+
+            // формирование ответа с запросом FileRequest и его отправка
+            Response serverResponse = new Response(fileRequest);
+
+            // получение того, что в файле клиента
+            Response clientFileContent = sendResponse(serverResponse);
+
+            fileContent = clientFileContent.getMessage();
+        }
+
+        // обработка запроса
         try {
             if (request.getType() == RequestTypes.COMMAND) {
-                response = handleRequest((CommandRequest) request);
+                if (fileContent == null) {
+                    response = handleRequest((CommandRequest) request);
+                } else {
+                    response = handleRequest((CommandRequest) request, fileContent);
+                }
             }
         } catch (NullPointerException e) {
             System.out.printf("Запрос оказался null: %s\n", e.getMessage());
@@ -98,7 +118,7 @@ public class Server {
     }
 
     /**
-     * Ожидает ответ от клиента, на отправленный сервером запрос (в основном запросы от сервера - buildRequest)
+     * Ожидает ответ от клиента, на отправленный сервером запрос (запросы от сервера - buildRequest или fileRequest)
      *
      * @return response - полученный ответ
      */
@@ -121,14 +141,14 @@ public class Server {
             ois.close();
 
             String msg = response.getMessage();
-            System.out.printf("Получен ответ от %s:%s : %s\n", clientAddr, clientPort, msg.length() > 16 ? msg.substring(0,16) : msg);
+            System.out.printf("Получен ответ от %s:%s : %s...\n", clientAddr, clientPort, msg.length() > 16 ? msg.substring(0, 16) : msg);
 
         } catch (IOException e) {
             System.out.printf("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage());
+            e.printStackTrace();
         } catch (ClassNotFoundException | ClassCastException e) {
             System.out.printf("Ошибка при формировании запроса от клиента по адресу %s:%s. Ошибка: %s\n", clientAddr, clientPort, e.getMessage());
         }
-
 
         return response;
     }
@@ -139,9 +159,10 @@ public class Server {
      * @param request - Запрос для обработки
      * @return response - Ответ после запроса
      */
-    private Response handleRequest(CommandRequest request) {
+    private Response handleRequest(CommandRequest request, String fileContent) {
         Response response = null;
 
+//        System.out.println("fileContent: " + fileContent);
         String cmdName = request.getCommand();
         String[] args = request.getArgs();
         ReadModes readMode = request.getReadMode();
@@ -149,16 +170,35 @@ public class Server {
         CommandInvoker cmdInvoker = CommandInvoker.getInstance();
         Command command = cmdInvoker.getCommand(cmdName);
 
+        if (request.getFilePath() != null && fileContent != null) {
+            switch (cmdName) {
+                case "execute_script" -> {
+                    ExecuteScriptCommand exe = (ExecuteScriptCommand) command;
+
+                    exe.setScript(fileContent);
+                }
+                case "add", "add_if_min" -> {
+
+                }
+                case "update" -> {
+                    //update
+                }
+            }
+        }
 
         if (command == null) {
-            response = new Response("Указанной команды не существует!", true);
+            response = new Response("Указанной команды не существует!");
             System.out.println("Такой команды не существует, отправка ответа клиенту...");
         } else {
             response = cmdInvoker.runCommand(command, args, readMode);
-            System.out.println("Команда выполнена, отправка ответа клиенту...");
+            System.out.printf("Команда %s выполнена, отправка ответа клиенту...\n", cmdName);
         }
 
         return response;
+    }
+
+    private Response handleRequest(CommandRequest request) {
+        return handleRequest(request, null);
     }
 
 
@@ -187,9 +227,10 @@ public class Server {
             dsServer.send(dpServer);
 
             if (response.hasResponseRequest()) {
-                System.out.printf("Отправлен ответ с запросом клиенту по адресу %s:%s, ответ: %s...\n\n", clientAddr, clientPort, response.getMessage());
+                System.out.printf("Отправлен ответ с запросом типа %s клиенту по адресу %s:%s\n\n", response.getResponseRequest().getType().toString(), clientAddr, clientPort);
             } else {
-                System.out.printf("Отправлен ответ клиенту по адресу %s:%s, ответ: %s...\n\n", clientAddr, clientPort, response.getMessage());
+                System.out.printf("Отправлен ответ клиенту по адресу %s:%s\n\n", clientAddr, clientPort);
+//                System.out.println(response);
             }
 //            System.out.printf("Запрос: %s\n", response.getMessage());
 

@@ -4,7 +4,7 @@ import java.util.HashSet;
 
 public class IdManager {
     private static long currentUsedId = 1;
-    private static HashSet<Long> used;
+    private static HashSet<Long> used = new HashSet<>();
 
     public static long getId() {
         long maybeId;
