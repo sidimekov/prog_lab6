@@ -9,7 +9,7 @@ public class BuildRequest extends Request{
     @Serial
     private static final long serialVersionUID = 1373522342782291647L;
 
-    String message;
+    private String message;
     public BuildRequest(String message) {
         super(RequestTypes.BUILD);
         this.message = message;

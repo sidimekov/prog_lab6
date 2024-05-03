@@ -5,9 +5,9 @@ import entity.Route;
 import enums.ReadModes;
 import exceptions.FailedJSONReadException;
 import exceptions.FailedValidationException;
-import input.InputManager;
 import input.JSONManager;
 import network.Response;
+import util.InputManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,16 +21,17 @@ public class UpdateCommand extends Command {
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
         if (args.length == 0) {
-            try {
-                BufferedReader reader = InputManager.getConsoleReader();
-                Route element = RouteManager.buildNew(reader, true);
-                if (readMode == ReadModes.CONSOLE) {
+            // если нет аргументов, то нужно построить из консоли, значит если файл то бан
+            if (readMode == ReadModes.CONSOLE) {
+                try {
+                    BufferedReader reader = InputManager.getConsoleReader();
+                    Route element = RouteManager.buildNew(reader, true);
                     rm.update(element, true); // если с консоли, уже отвалидировано
-                } else {
-                    return new Response(String.format("Некорректные аргументы, использование: %s\n", USAGE), true);
+                } catch (IOException e) {
+                    return new Response(e.getMessage());
                 }
-            } catch (IOException e) {
-                return new Response(e.getMessage(), true);
+            } else {
+                return new Response(String.format("Некорректные аргументы, использование: %s\n", USAGE));
             }
         } else {
             // из файла .json
@@ -39,13 +40,10 @@ public class UpdateCommand extends Command {
                 Route element = JSONManager.readElement(path);
                 rm.update(element);
             } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(e.getMessage(), true);
+                return new Response(e.getMessage());
             }
         }
-        if (readMode == ReadModes.CONSOLE) {
-            return new Response("Обновлён элемент в коллекции", true);
-        }
-        return new Response();
+        return new Response("Обновлён элемент в коллекции");
     }
 
 

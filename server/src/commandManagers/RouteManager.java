@@ -7,8 +7,8 @@ import entity.LocationFrom;
 import entity.LocationTo;
 import entity.Route;
 import exceptions.FailedValidationException;
-import input.InputManager;
 import input.JSONManager;
+import util.InputManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;

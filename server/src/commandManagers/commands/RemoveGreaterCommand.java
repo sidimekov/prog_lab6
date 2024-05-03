@@ -5,9 +5,9 @@ import entity.Route;
 import enums.ReadModes;
 import exceptions.FailedJSONReadException;
 import exceptions.FailedValidationException;
-import input.InputManager;
 import input.JSONManager;
 import network.Response;
+import util.InputManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,6 +15,7 @@ import java.io.IOException;
 public class RemoveGreaterCommand extends Command {
     public static final String USAGE = "remove_greater ИЛИ remove_greater <элемент в формате .json>";
     public static final String DESC = "удалить из коллекции все элементы, превышающие заданный";
+
     @Override
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
@@ -39,10 +40,7 @@ public class RemoveGreaterCommand extends Command {
                 .stream()
                 .filter(element -> (element.compareTo(inpElement) > 0))
                 .forEach(element -> rm.removeElement(element.getId()));
-        if (readMode == ReadModes.CONSOLE) {
-            return new Response("Все элементы, превосходящие введённый, удалены", true);
-        }
-        return new Response();
+        return new Response("Все элементы, превосходящие введённый, удалены");
     }
 
     @Override

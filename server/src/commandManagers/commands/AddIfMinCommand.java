@@ -5,9 +5,9 @@ import entity.Route;
 import enums.ReadModes;
 import exceptions.FailedJSONReadException;
 import exceptions.FailedValidationException;
-import input.InputManager;
 import input.JSONManager;
 import network.Response;
+import util.InputManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,35 +25,34 @@ public class AddIfMinCommand extends Command {
         Route minElement = rm.getMinElement();
         Route element;
         if (args.length == 0) {
-            try {
-                BufferedReader reader = InputManager.getConsoleReader();
-                element = RouteManager.buildNew(reader); // если с консоли
-            } catch (IOException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()), true);
+
+            // если нет аргументов, то нужно построить из консоли, значит если файл то бан
+            if (readMode == ReadModes.CONSOLE) {
+                try {
+                    BufferedReader reader = InputManager.getConsoleReader();
+                    element = RouteManager.buildNew(reader); // если с консоли
+                } catch (IOException e) {
+                    return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
+                }
+            } else {
+                return new Response(String.format("Ошибка в использовании аргументов. Использование: %s", USAGE));
             }
         } else {
             String path = args[0];
             try {
                 element = JSONManager.readElement(path);
             } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getStackTrace()), true);
+                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
             }
         }
 
 
         if (minElement == null || element.compareTo(minElement) < 0) {
-            if (readMode == ReadModes.CONSOLE) {
-                rm.addElement(element, true);
-                return new Response("Минимальный элемент добавлен в коллекцию", true);
-            } else {
-                rm.addElement(element);
-            }
+            rm.addElement(element, true);
+            return new Response("Минимальный элемент добавлен в коллекцию");
         } else {
-            if (readMode == ReadModes.CONSOLE) {
-                return new Response("Указанный элемент не будет самым минимальным", true);
-            }
+            return new Response("Указанный элемент не будет самым минимальным");
         }
-        return new Response("null",true);
     }
 
     @Override

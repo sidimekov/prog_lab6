@@ -2,7 +2,6 @@ package commandManagers.commands;
 
 import commandManagers.CommandInvoker;
 import enums.ReadModes;
-import network.MessageRequest;
 import network.Response;
 
 import java.io.Serial;
@@ -24,11 +23,7 @@ public class HelpCommand extends Command {
             response.append(String.format("%s - %s\n", command.getUsage(), command.getDesc()));
         }
 
-        if (readMode == ReadModes.CONSOLE) {
-            return new Response(response.toString(), true);
-        } else {
-            return new Response(new MessageRequest(response.toString()));
-        }
+        return new Response(response.toString());
     }
 
 

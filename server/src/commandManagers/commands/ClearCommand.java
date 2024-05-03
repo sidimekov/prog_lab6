@@ -11,14 +11,12 @@ public class ClearCommand extends Command {
     private static final long serialVersionUID = 5028559730072584091L;
     public static final String USAGE = "clear";
     public static final String DESC = "очистить коллекцию";
+
     @Override
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
         rm.getCollection().clear();
-        if (readMode == ReadModes.CONSOLE) {
-            return new Response("Коллекция очищена", true);
-        }
-        return new Response();
+        return new Response("Коллекция очищена");
     }
 
     @Override
