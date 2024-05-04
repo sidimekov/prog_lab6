@@ -7,47 +7,47 @@ import exceptions.FailedJSONReadException;
 import util.IdManager;
 import util.InputManager;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.PriorityQueue;
 
 public class JSONManager {
-    public static Route readElement(String path) throws FailedJSONReadException {
+    public static Route readElement(String jsonContent) throws FailedJSONReadException {
         Gson gson = new Gson();
-        try {
-            Route element = gson.fromJson(new InputStreamReader(new FileInputStream(path)), Route.class);
-            JsonObject jsonObject = gson.fromJson(new InputStreamReader(new FileInputStream(path)), JsonObject.class);
-            // если id изначально не было, то поменять тот 0, который дал gson, на автоматический
-            JsonElement id = jsonObject.get("id");
-            if (id == null) {
-                element.setId(IdManager.getId());
-            }
-            return element;
-        } catch (FileNotFoundException e) {
-            throw new FailedJSONReadException("Не удалось считать из файла json");
+        Route element = gson.fromJson(new StringReader(jsonContent), Route.class);
+        JsonObject jsonObject = gson.fromJson(new StringReader(jsonContent), JsonObject.class);
+        // если id изначально не было, то поменять тот 0, который дал gson, на автоматический
+        JsonElement id = jsonObject.get("id");
+        if (id == null) {
+            element.setId(IdManager.getId());
         }
+        return element;
     }
 
-    public static void writeElement(String path, Route element) {
+    public static String elementToJson(Route element) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String json = gson.toJson(element);
-        InputManager.write(path, json);
+        return json;
     }
 
-    public static void writeCollection(String path) {
+    public static String collectionToJson() {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         PriorityQueue<Route> collection = RouteManager.getInstance().getCollection();
         String json = gson.toJson(collection);
-        InputManager.write(path, json);
+        return json;
     }
 
-    public static PriorityQueue<Route> readCollection(String path) throws RuntimeException {
+    public static PriorityQueue<Route> readCollection(String jsonContent) throws RuntimeException {
         Gson gson = new Gson();
-        Route[] arrayCollection;
-        try {
-            PriorityQueue<Route> collection = new PriorityQueue<>();
-            JsonArray elements = gson.fromJson(new InputStreamReader(new FileInputStream(path)), JsonArray.class);
+
+        PriorityQueue<Route> collection = new PriorityQueue<>();
+        JsonArray elements = gson.fromJson(new StringReader(jsonContent), JsonArray.class);
+
+        if (elements == null) {
+            return collection;
+        } else {
 
             // сначала считываем те, у которых указан id, чтоб потом тем, кто без id нормально сгенерить
             for (int i = 0; i < elements.size(); i++) {
@@ -71,9 +71,22 @@ public class JSONManager {
                 }
             }
             return collection;
-        } catch (FileNotFoundException e) {
-            System.out.println("Файл не найден");
         }
-        return new PriorityQueue<>();
+    }
+
+    public static PriorityQueue<Route> readServerCollection(String path) {
+
+        String jsonContent = null;
+        try {
+            jsonContent = Files.readString(Paths.get(path), StandardCharsets.UTF_8);
+        } catch (FileNotFoundException e) {
+            System.out.printf("Ошибка при загрузке коллекции из файла. Не найден файл, %s\n", e.getMessage());
+            return null;
+        } catch (IOException e) {
+            System.out.printf("Ошибка при загрузке коллекции из файла: %s\n", e.getStackTrace());
+            return null;
+        }
+
+        return readCollection(jsonContent);
     }
 }

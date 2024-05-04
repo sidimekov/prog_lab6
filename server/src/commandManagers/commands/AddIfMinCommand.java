@@ -19,6 +19,7 @@ public class AddIfMinCommand extends Command {
     public static final String USAGE = "add_if_min ИЛИ add_if_min <элемент в формате .json>";
     public static final String DESC = "добавить новый элемент в коллекцию, если его значение меньше, чем у наименьшего элемента этой коллекции";
 
+    private String jsonContent;
     @Override
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
@@ -38,9 +39,8 @@ public class AddIfMinCommand extends Command {
                 return new Response(String.format("Ошибка в использовании аргументов. Использование: %s", USAGE));
             }
         } else {
-            String path = args[0];
             try {
-                element = JSONManager.readElement(path);
+                element = JSONManager.readElement(jsonContent);
             } catch (FailedValidationException | FailedJSONReadException e) {
                 return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
             }
@@ -53,6 +53,14 @@ public class AddIfMinCommand extends Command {
         } else {
             return new Response("Указанный элемент не будет самым минимальным");
         }
+    }
+
+    public String getJsonContent() {
+        return jsonContent;
+    }
+
+    public void setJsonContent(String jsonContent) {
+        this.jsonContent = jsonContent;
     }
 
     @Override

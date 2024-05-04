@@ -2,10 +2,10 @@ package network;
 
 import commandManagers.CommandInvoker;
 import commandManagers.RouteManager;
-import commandManagers.commands.Command;
-import commandManagers.commands.ExecuteScriptCommand;
+import commandManagers.commands.*;
 import enums.ReadModes;
 import enums.RequestTypes;
+import util.InputManager;
 
 import java.io.*;
 import java.net.DatagramPacket;
@@ -14,12 +14,15 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 public class Server {
     private static Server server;
     private InetSocketAddress serverSocketAddr;
     private InetAddress clientAddr;
     private int clientPort;
+    private static final Logger logger = Logger.getLogger("Server");
 
     private Server() {
         server = this;
@@ -34,17 +37,43 @@ public class Server {
 
     public void run(String serverAddr, int serverPort) {
 
-        RouteManager rm = RouteManager.getInstance();
+        RouteManager.initialize();
 
         this.serverSocketAddr = new InetSocketAddress(serverAddr, serverPort);
 
-        System.out.printf("Сервер запущен по адресу: %s:%s\n", serverAddr, serverPort);
+        logger.info(String.format("Сервер запущен по адресу: %s:%s\n", serverAddr, serverPort));
+
+        BufferedReader reader = InputManager.getConsoleReader();
 
         while (true) {
+
+            try {
+                if (reader.ready()) {
+                    String line = reader.readLine();
+                    switch (line) {
+                        case "save" -> {
+                            RouteManager.getInstance().saveCollection(InputManager.getCollectionFilePath());
+
+                            logger.info("Коллекция сохранена");
+                        }
+                        case "exit" -> {
+                            logger.info("Давай пока до связи, коллекцию сохранил");
+
+                            RouteManager.getInstance().saveCollection(InputManager.getCollectionFilePath());
+
+                            System.exit(0);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
 
             Response response = listenRequest();
 
             sendResponse(response);
+
         }
     }
 
@@ -76,12 +105,12 @@ public class Server {
             ois.close();
 
             String msg = request.toString();
-            System.out.printf("Получен запрос от %s:%s : %s\n", clientAddr, clientPort, msg);
+            logger.info(String.format("Получен запрос от %s:%s : %s\n", clientAddr, clientPort, msg));
 
         } catch (IOException e) {
-            System.out.printf("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage());
+            logger.severe(String.format("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage()));
         } catch (ClassNotFoundException | ClassCastException e) {
-            System.out.printf("Ошибка при формировании запроса от клиента по адресу %s:%s\n", clientAddr, clientPort);
+            logger.severe(String.format("Ошибка при формировании запроса от клиента по адресу %s:%s\n", clientAddr, clientPort));
         }
 
         if (request != null && request.getFilePath() != null) {
@@ -111,7 +140,7 @@ public class Server {
                 }
             }
         } catch (NullPointerException e) {
-            System.out.printf("Запрос оказался null: %s\n", e.getMessage());
+            logger.severe(String.format("Запрос оказался null: %s\n", e.getMessage()));
         }
 
         return response;
@@ -141,13 +170,13 @@ public class Server {
             ois.close();
 
             String msg = response.getMessage();
-            System.out.printf("Получен ответ от %s:%s : %s...\n", clientAddr, clientPort, msg.length() > 16 ? msg.substring(0, 16) : msg);
+            logger.info(String.format("Получен ответ от %s:%s : %s...\n", clientAddr, clientPort, msg.length() > 16 ? msg.substring(0, 16) : msg));
 
         } catch (IOException e) {
-            System.out.printf("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage());
+            logger.severe(String.format("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage()));
             e.printStackTrace();
         } catch (ClassNotFoundException | ClassCastException e) {
-            System.out.printf("Ошибка при формировании запроса от клиента по адресу %s:%s. Ошибка: %s\n", clientAddr, clientPort, e.getMessage());
+            logger.severe(String.format("Ошибка при формировании запроса от клиента по адресу %s:%s. Ошибка: %s\n", clientAddr, clientPort, e.getMessage()));
         }
 
         return response;
@@ -177,21 +206,30 @@ public class Server {
 
                     exe.setScript(fileContent);
                 }
-                case "add", "add_if_min" -> {
+                case "add" -> {
+                    AddCommand add = (AddCommand) command;
 
+                    add.setJsonContent(fileContent);
+                }
+                case "add_if_min" -> {
+                    AddIfMinCommand add = (AddIfMinCommand) command;
+
+                    add.setJsonContent(fileContent);
                 }
                 case "update" -> {
-                    //update
+                    UpdateCommand update = (UpdateCommand) command;
+
+                    update.setJsonContent(fileContent);
                 }
             }
         }
 
         if (command == null) {
             response = new Response("Указанной команды не существует!");
-            System.out.println("Такой команды не существует, отправка ответа клиенту...");
+            logger.warning(String.format("Такой команды не существует, отправка ответа клиенту..."));
         } else {
             response = cmdInvoker.runCommand(command, args, readMode);
-            System.out.printf("Команда %s выполнена, отправка ответа клиенту...\n", cmdName);
+            logger.info(String.format("Команда %s выполнена, отправка ответа клиенту...\n", cmdName));
         }
 
         return response;
@@ -227,15 +265,15 @@ public class Server {
             dsServer.send(dpServer);
 
             if (response.hasResponseRequest()) {
-                System.out.printf("Отправлен ответ с запросом типа %s клиенту по адресу %s:%s\n\n", response.getResponseRequest().getType().toString(), clientAddr, clientPort);
+                logger.info(String.format("Отправлен ответ с запросом типа %s клиенту по адресу %s:%s\n\n", response.getResponseRequest().getType().toString(), clientAddr, clientPort));
             } else {
-                System.out.printf("Отправлен ответ клиенту по адресу %s:%s\n\n", clientAddr, clientPort);
+                logger.info(String.format("Отправлен ответ клиенту по адресу %s:%s\n\n", clientAddr, clientPort));
 //                System.out.println(response);
             }
 //            System.out.printf("Запрос: %s\n", response.getMessage());
 
         } catch (IOException e) {
-            System.out.printf("Ошибка ввода/вывода при посылке ответа клиенту по адресу %s:%s : %s\n", clientAddr, clientPort, e.getMessage());
+            logger.severe(String.format("Ошибка ввода/вывода при посылке ответа клиенту по адресу %s:%s : %s\n", clientAddr, clientPort, e.getMessage()));
             return null;
         }
 
@@ -269,16 +307,20 @@ public class Server {
 
             dsServer.send(dpServer);
 
-            System.out.printf("Отправлен запрос клиенту по адресу %s:%s\n\n", clientAddr, clientPort);
+            logger.info(String.format("Отправлен запрос клиенту по адресу %s:%s\n\n", clientAddr, clientPort));
 //            System.out.printf("Запрос: %s\n", response.getMessage());
 
         } catch (IOException e) {
-            System.out.printf("Ошибка ввода/вывода при посылке запроса клиенту по адресу %s:%s : %s\n", clientAddr, clientPort, e.getMessage());
+            logger.severe(String.format("Ошибка ввода/вывода при посылке запроса клиенту по адресу %s:%s : %s\n", clientAddr, clientPort, e.getMessage()));
             return null;
         }
 
         Response response = listenResponse();
 
         return response;
+    }
+
+    public static Logger getLogger() {
+        return logger;
     }
 }

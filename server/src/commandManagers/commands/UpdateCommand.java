@@ -17,6 +17,7 @@ public class UpdateCommand extends Command {
     private static String USAGE = "update ИЛИ update <элемент в формате .json>";
     private static String DESC = "обновить значение элемента коллекции, id которого равен заданному";
 
+    private String jsonContent;
     @Override
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
@@ -35,9 +36,8 @@ public class UpdateCommand extends Command {
             }
         } else {
             // из файла .json
-            String path = args[0];
             try {
-                Route element = JSONManager.readElement(path);
+                Route element = JSONManager.readElement(jsonContent);
                 rm.update(element);
             } catch (FailedValidationException | FailedJSONReadException e) {
                 return new Response(e.getMessage());
@@ -46,6 +46,13 @@ public class UpdateCommand extends Command {
         return new Response("Обновлён элемент в коллекции");
     }
 
+    public String getJsonContent() {
+        return jsonContent;
+    }
+
+    public void setJsonContent(String jsonContent) {
+        this.jsonContent = jsonContent;
+    }
 
     @Override
     public String getDesc() {

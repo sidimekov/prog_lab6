@@ -3,22 +3,25 @@ package commandManagers;
 import commandManagers.commands.*;
 import enums.ReadModes;
 import network.Response;
+import network.Server;
+import util.InputManager;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 public class CommandInvoker {
-    private Map<String, Command> commands;
+    private final Map<String, Command> commands;
     private static CommandInvoker instance;
-
     private int scriptCounter;
     public final int SCRIPT_RECURSION_LIMIT = 10;
 
     private CommandInvoker() {
         RouteManager.getInstance();
 
-        commands = new HashMap<String, Command>();
+        commands = new HashMap<>();
 
         commands.put("help", new HelpCommand());
         commands.put("add", new AddCommand());
@@ -68,10 +71,23 @@ public class CommandInvoker {
                 response = command.execute(readMode, new String[0]);
             }
         } else {
-            System.out.println("Такой команды не существует!");
+            Server.getLogger().severe("Такой команды не существует!");
         }
         return response;
     }
+
+    public void listenCommands() {
+        try {
+            BufferedReader reader = InputManager.getConsoleReader();
+            while (true) {
+                String line = reader.readLine();
+                runCommand(line, ReadModes.CONSOLE);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public Map<String, Command> getCommands() {
         return commands;
     }

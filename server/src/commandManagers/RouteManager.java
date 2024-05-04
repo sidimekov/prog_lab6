@@ -8,6 +8,7 @@ import entity.LocationTo;
 import entity.Route;
 import exceptions.FailedValidationException;
 import input.JSONManager;
+import network.Server;
 import util.InputManager;
 
 import java.io.BufferedReader;
@@ -52,19 +53,25 @@ public class RouteManager {
         String collectionFilePath = InputManager.getCollectionFilePath();
         if (collectionFilePath == null) {
             this.collection = new PriorityQueue<>();
-            System.out.println("Коллекция не была загружена из файла");
+            Server.getLogger().info("Коллекция не была загружена из файла");
         } else {
-            this.collection = JSONManager.readCollection(collectionFilePath);
-            if (checkIdUniqueness()) {
-                if (this.collection.stream().allMatch(RouteManager::validateElement)) {
-                    System.out.println("Коллекция была загружена из файла");
+            PriorityQueue<Route> readCollection = JSONManager.readServerCollection(collectionFilePath);
+            if (readCollection != null) {
+                if (checkIdUniqueness()) {
+                    if (readCollection.stream().allMatch(RouteManager::validateElement)) {
+                        this.collection = readCollection;
+                        Server.getLogger().info("Коллекция была загружена из файла");
+                    } else {
+                        Server.getLogger().severe("Ошибка при загрузке из файла: Некоторые элементы из коллекции некорректны");
+                        this.collection = new PriorityQueue<>();
+                    }
                 } else {
-                    System.out.println("Ошибка при загрузке из файла: Некоторые элементы из коллекции некорректны");
                     this.collection = new PriorityQueue<>();
+                    Server.getLogger().severe("Ошибка при загрузке из файла: были обнаружены одинаковые id у элементов");
                 }
             } else {
                 this.collection = new PriorityQueue<>();
-                System.out.println("Ошибка при загрузке из файла: были обнаружены одинаковые id у элементов");
+                Server.getLogger().severe("Коллекция не была загружена из файла");
             }
         }
     }
@@ -181,50 +188,50 @@ public class RouteManager {
 
     public static boolean validateElement(Route el) {
         if (!checkId(el.getId())) {
-            System.out.println("Неверный id (возможно, он уже занят)");
+            Server.getLogger().warning("Неверный id (возможно, он уже занят)");
             return false;
         }
 
         if (!Route.checkName(el.getName())) {
-            System.out.println("Неверное имя элемента (Поле не может быть null, Строка не может быть пустой)");
+            Server.getLogger().warning("Неверное имя элемента (Поле не может быть null, Строка не может быть пустой)");
             return false;
         }
 
         if (!Route.checkCreationDate(el.getCreationDate())) {
-            System.out.println("Неверная дата создания (Поле не может быть null)");
+            Server.getLogger().warning("Неверная дата создания (Поле не может быть null)");
             return false;
         }
 
         Coordinates coordinates = el.getCoordinates();
         if (!Route.checkCoordinates(coordinates)) {
-            System.out.println("Некорректные координаты (Поле не может быть null)");
+            Server.getLogger().warning("Некорректные координаты (Поле не может быть null)");
             return false;
         }
         if (!Coordinates.checkX(coordinates.getX()) || !Coordinates.checkY(coordinates.getY())) {
-            System.out.println("Некорректные координаты (x: Максимальное значение поля: 790, y: Значение поля должно быть больше -858, Поле не может быть null");
+            Server.getLogger().warning("Некорректные координаты (x: Максимальное значение поля: 790, y: Значение поля должно быть больше -858, Поле не может быть null");
             return false;
         }
 
         LocationFrom from = el.getFrom();
         if (!Route.checkFrom(from)) {
-            System.out.println("Некорректная изначальная локация (Поле не может быть null)");
+            Server.getLogger().warning("Некорректная изначальная локация (Поле не может быть null)");
             return false;
         }
         if (!LocationFrom.checkY(from.getY())) {
-            System.out.println("Некорректная изначальная локация (y: Поле не может быть null");
+            Server.getLogger().warning("Некорректная изначальная локация (y: Поле не может быть null");
             return false;
         }
 
         LocationTo to = el.getTo();
         if (to != null) {
             if (!LocationTo.checkY(to.getY()) || !LocationTo.checkName(to.getName())) {
-                System.out.println("Некорректная окончательная локация (y: Поле не может быть null, name: Длина строки не должна быть больше 443, Поле не может быть null)");
+                Server.getLogger().warning("Некорректная окончательная локация (y: Поле не может быть null, name: Длина строки не должна быть больше 443, Поле не может быть null)");
                 return false;
             }
         }
 
         if (!Route.checkDistance(el.getDistance())) {
-            System.out.println("Некорректная дистанция (Значение поля должно быть больше 1)");
+            Server.getLogger().warning("Некорректная дистанция (Значение поля должно быть больше 1)");
             return false;
         }
 
@@ -275,7 +282,8 @@ public class RouteManager {
     }
 
     public void saveCollection(String path) {
-        JSONManager.writeCollection(path);
+        String jsonContent = JSONManager.collectionToJson();
+        InputManager.write(path, jsonContent);
     }
 
     public static boolean checkId(long id) {

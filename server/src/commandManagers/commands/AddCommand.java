@@ -19,6 +19,8 @@ public class AddCommand extends Command {
     private String USAGE = "add (только в консоли) ИЛИ add <элемент в формате .json>";
     private String DESC = "добавить новый элемент в коллекцию";
 
+    private String jsonContent;
+
     @Override
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
@@ -40,15 +42,21 @@ public class AddCommand extends Command {
             }
         } else {
             // из файла .json
-            String path = args[0];
             try {
-                Route element = JSONManager.readElement(path);
+                Route element = JSONManager.readElement(jsonContent);
                 RouteManager.getInstance().addElement(element);
             } catch (FailedValidationException | FailedJSONReadException e) {
                 return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
             }
         }
         return new Response("Добавлен элемент в коллекцию");
+    }
+
+    public void setJsonContent(String jsonContent) {
+        this.jsonContent = jsonContent;
+    }
+    public String getJsonContent() {
+        return jsonContent;
     }
 
     @Override
