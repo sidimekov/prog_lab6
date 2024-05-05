@@ -8,18 +8,12 @@ import enums.RequestTypes;
 import util.InputManager;
 
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.util.logging.LogManager;
+import java.net.*;
 import java.util.logging.Logger;
 
 public class Server {
     private static Server server;
-    private InetSocketAddress serverSocketAddr;
+    private DatagramSocket dsServer;
     private InetAddress clientAddr;
     private int clientPort;
     private static final Logger logger = Logger.getLogger("Server");
@@ -35,13 +29,22 @@ public class Server {
         return server;
     }
 
-    public void run(String serverAddr, int serverPort) {
+    public void openServerSocket(int serverPort) throws IOException {
+        dsServer = new DatagramSocket(serverPort);
+    }
+
+    public void run(int serverPort) {
 
         RouteManager.initialize();
 
-        this.serverSocketAddr = new InetSocketAddress(serverAddr, serverPort);
+        try {
+            openServerSocket(serverPort);
+        } catch (IOException e) {
+            System.out.printf("Ошибка при открытии сокета на порту: %s\n", serverPort);
+            return;
+        }
 
-        logger.info(String.format("Сервер запущен по адресу: %s:%s\n", serverAddr, serverPort));
+        logger.info(String.format("Сервер запущен на порту: %s\n", serverPort));
 
         BufferedReader reader = InputManager.getConsoleReader();
 
@@ -89,19 +92,24 @@ public class Server {
 
         String fileContent = null;
 
-        try (ServerSocketChannel sscServer = ServerSocketChannel.open()) {
+        try {
 
+            byte[] bytesRequest = new byte[4096];
+            DatagramPacket dpRequest = new DatagramPacket(bytesRequest, bytesRequest.length);
 
-            sscServer.bind(serverSocketAddr);
+            dsServer.receive(dpRequest);
 
-            SocketChannel scClient = sscServer.accept();
+            byte[] dataRequest = dpRequest.getData();
 
-            clientAddr = scClient.socket().getInetAddress();
-            clientPort = scClient.socket().getPort();
+            clientAddr = dpRequest.getAddress();
+            clientPort = dpRequest.getPort();
 
-            ObjectInputStream ois = new ObjectInputStream(scClient.socket().getInputStream());
+            ByteArrayInputStream bais = new ByteArrayInputStream(dataRequest);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+
             request = (Request) ois.readObject();
 
+            bais.close();
             ois.close();
 
             String msg = request.toString();
@@ -155,18 +163,23 @@ public class Server {
 //        System.out.println("Слушаю ответ");
         Response response = null;
 
-        try (ServerSocketChannel sscServer = ServerSocketChannel.open()) {
+        try {
+            byte[] bytesRequest = new byte[4096];
+            DatagramPacket dpResponse = new DatagramPacket(bytesRequest, bytesRequest.length);
 
-            sscServer.bind(serverSocketAddr);
+            dsServer.receive(dpResponse);
 
-            SocketChannel scClient = sscServer.accept();
+            byte[] dataResponse = dpResponse.getData();
 
-            clientAddr = scClient.socket().getInetAddress();
-            clientPort = scClient.socket().getPort();
+            clientAddr = dpResponse.getAddress();
+            clientPort = dpResponse.getPort();
 
-            ObjectInputStream ois = new ObjectInputStream(scClient.socket().getInputStream());
+            ByteArrayInputStream bais = new ByteArrayInputStream(dataResponse);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+
             response = (Response) ois.readObject();
 
+            bais.close();
             ois.close();
 
             String msg = response.getMessage();
@@ -174,7 +187,7 @@ public class Server {
 
         } catch (IOException e) {
             logger.severe(String.format("Ошибка ввода/вывода при получении запросов: %s\n", e.getMessage()));
-            e.printStackTrace();
+//            e.printStackTrace();
         } catch (ClassNotFoundException | ClassCastException e) {
             logger.severe(String.format("Ошибка при формировании запроса от клиента по адресу %s:%s. Ошибка: %s\n", clientAddr, clientPort, e.getMessage()));
         }
@@ -189,7 +202,7 @@ public class Server {
      * @return response - Ответ после запроса
      */
     private Response handleRequest(CommandRequest request, String fileContent) {
-        Response response = null;
+        Response response;
 
 //        System.out.println("fileContent: " + fileContent);
         String cmdName = request.getCommand();
@@ -231,7 +244,7 @@ public class Server {
 
         if (command == null) {
             response = new Response("Указанной команды не существует!");
-            logger.warning(String.format("Такой команды не существует, отправка ответа клиенту..."));
+            logger.warning("Такой команды не существует, отправка ответа клиенту...");
         } else {
             response = cmdInvoker.runCommand(command, args, readMode);
             logger.info(String.format("Команда %s выполнена, отправка ответа клиенту...\n", cmdName));
@@ -252,7 +265,7 @@ public class Server {
      */
     public Response sendResponse(Response response) {
 
-        try (DatagramSocket dsServer = new DatagramSocket()) {
+        try {
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -285,47 +298,15 @@ public class Server {
         if (response.hasResponseRequest()) {
             // Наш посланный ответ содержит запрос, поэтому нужно выждать ответ
 
-            Response clientResponse = listenResponse();
-
-            return clientResponse;
+            return listenResponse();
 
         } else {
             return null;
         }
     }
 
-    public Response sendRequest(Request request) {
-        try (DatagramSocket dsServer = new DatagramSocket()) {
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-
-            oos.writeObject(request);
-
-            oos.flush();
-            oos.close();
-
-            baos.close();
-            byte[] byteResponse = baos.toByteArray();
-
-            DatagramPacket dpServer = new DatagramPacket(byteResponse, byteResponse.length, clientAddr, clientPort);
-
-            dsServer.send(dpServer);
-
-            logger.info(String.format("Отправлен запрос клиенту по адресу %s:%s\n\n", clientAddr, clientPort));
-//            System.out.printf("Запрос: %s\n", response.getMessage());
-
-        } catch (IOException e) {
-            logger.severe(String.format("Ошибка ввода/вывода при посылке запроса клиенту по адресу %s:%s : %s\n", clientAddr, clientPort, e.getMessage()));
-            return null;
-        }
-
-        Response response = listenResponse();
-
-        return response;
-    }
-
     public static Logger getLogger() {
         return logger;
     }
+
 }
