@@ -16,6 +16,7 @@ public class RemoveGreaterCommand extends Command {
     public static final String USAGE = "remove_greater ИЛИ remove_greater <элемент в формате .json>";
     public static final String DESC = "удалить из коллекции все элементы, превышающие заданный";
 
+    private String jsonContent;
     @Override
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
@@ -28,11 +29,15 @@ public class RemoveGreaterCommand extends Command {
                 return new Response(e.getMessage());
             }
         } else {
-            String path = args[0];
-            try {
-                inpElement = JSONManager.readElement(path);
-            } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(e.getMessage());
+            if (jsonContent != null) {
+                try {
+                    inpElement = JSONManager.readElement(jsonContent);
+                    jsonContent = null;
+                } catch (FailedValidationException | FailedJSONReadException e) {
+                    return new Response(e.getMessage());
+                }
+            } else {
+                return new Response("Файл не найден / был пуст");
             }
         }
 
@@ -41,6 +46,14 @@ public class RemoveGreaterCommand extends Command {
                 .filter(element -> (element.compareTo(inpElement) > 0))
                 .forEach(element -> rm.removeElement(element.getId()));
         return new Response("Все элементы, превосходящие введённый, удалены");
+    }
+
+    public String getJsonContent() {
+        return jsonContent;
+    }
+
+    public void setJsonContent(String jsonContent) {
+        this.jsonContent = jsonContent;
     }
 
     @Override

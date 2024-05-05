@@ -76,18 +76,6 @@ public class CommandInvoker {
         return response;
     }
 
-    public void listenCommands() {
-        try {
-            BufferedReader reader = InputManager.getConsoleReader();
-            while (true) {
-                String line = reader.readLine();
-                runCommand(line, ReadModes.CONSOLE);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public Map<String, Command> getCommands() {
         return commands;
     }

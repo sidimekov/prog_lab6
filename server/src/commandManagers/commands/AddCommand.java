@@ -9,6 +9,7 @@ import input.JSONManager;
 import network.Response;
 import util.InputManager;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Serial;
@@ -42,11 +43,16 @@ public class AddCommand extends Command {
             }
         } else {
             // из файла .json
-            try {
-                Route element = JSONManager.readElement(jsonContent);
-                RouteManager.getInstance().addElement(element);
-            } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
+            if (jsonContent != null) {
+                try {
+                    Route element = JSONManager.readElement(jsonContent);
+                    jsonContent = null;
+                    RouteManager.getInstance().addElement(element);
+                } catch (FailedValidationException | FailedJSONReadException e) {
+                    return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
+                }
+            } else {
+                return new Response("Файл не найден / был пуст");
             }
         }
         return new Response("Добавлен элемент в коллекцию");

@@ -44,6 +44,11 @@ public class CommandInvoker {
         String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
         if (!cmdName.isEmpty()) {
 
+            if (cmdName.equals("exit")) {
+                System.out.println("Пока, вырубаюсь...");
+                System.exit(0);
+            }
+
             Client client = Client.getInstance();
             CommandRequest request = new CommandRequest(cmdName, args);
             request.setReadMode(readMode);
@@ -126,9 +131,10 @@ public class CommandInvoker {
 
                 try {
                     fileContent = Files.readString(Path.of(path), StandardCharsets.UTF_8);
+//                    System.out.println(fileContent);
                 } catch (IOException e) {
                     System.out.printf("Ошибка при отправке содержимого файла: %s", e.getMessage());
-                    return;
+//                    return;
                 }
 
                 Response fileContentResponse = new Response(fileContent);

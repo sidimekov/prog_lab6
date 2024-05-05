@@ -36,11 +36,16 @@ public class UpdateCommand extends Command {
             }
         } else {
             // из файла .json
-            try {
-                Route element = JSONManager.readElement(jsonContent);
-                rm.update(element);
-            } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(e.getMessage());
+            if (jsonContent != null) {
+                try {
+                    Route element = JSONManager.readElement(jsonContent);
+                    jsonContent = null;
+                    rm.update(element);
+                } catch (FailedValidationException | FailedJSONReadException e) {
+                    return new Response(e.getMessage());
+                }
+            } else {
+                return new Response("Файл не найден / был пуст");
             }
         }
         return new Response("Обновлён элемент в коллекции");

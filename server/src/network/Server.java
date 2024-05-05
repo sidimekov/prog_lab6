@@ -216,6 +216,11 @@ public class Server {
 
                     add.setJsonContent(fileContent);
                 }
+                case "remove_greater" -> {
+                    RemoveGreaterCommand removeGreater = (RemoveGreaterCommand) command;
+
+                    removeGreater.setJsonContent(fileContent);
+                }
                 case "update" -> {
                     UpdateCommand update = (UpdateCommand) command;
 

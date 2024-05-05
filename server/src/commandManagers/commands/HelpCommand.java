@@ -18,6 +18,7 @@ public class HelpCommand extends Command {
         Map<String, Command> commands = CommandInvoker.getInstance().getCommands();
 
         StringBuilder response = new StringBuilder();
+        response.append("exit - Выход из программы\n");
 
         for (Command command : commands.values()) {
             response.append(String.format("%s - %s\n", command.getUsage(), command.getDesc()));

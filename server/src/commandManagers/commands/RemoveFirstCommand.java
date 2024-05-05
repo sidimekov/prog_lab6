@@ -11,8 +11,12 @@ public class RemoveFirstCommand extends Command {
     @Override
     public Response execute(ReadModes readMode, String[] args) {
         RouteManager rm = RouteManager.getInstance();
-        rm.getCollection().remove();
-        return new Response("Первый элемент коллекции удалён");
+        if (rm.getCollection().size() > 0) {
+            rm.getCollection().remove();
+            return new Response("Первый элемент коллекции удалён");
+        } else {
+            return new Response("Коллекция уже пуста!");
+        }
     }
 
     @Override

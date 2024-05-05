@@ -39,10 +39,15 @@ public class AddIfMinCommand extends Command {
                 return new Response(String.format("Ошибка в использовании аргументов. Использование: %s", USAGE));
             }
         } else {
-            try {
-                element = JSONManager.readElement(jsonContent);
-            } catch (FailedValidationException | FailedJSONReadException e) {
-                return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
+            if (jsonContent != null) {
+                try {
+                    element = JSONManager.readElement(jsonContent);
+                    jsonContent = null;
+                } catch (FailedValidationException | FailedJSONReadException e) {
+                    return new Response(String.format("Ошибка при добавлении в коллекцию: %s\n", e.getMessage()));
+                }
+            } else {
+                return new Response("Файл не найден / был пуст");
             }
         }
 
